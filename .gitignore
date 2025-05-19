@@ -17,7 +17,6 @@ main
 # Dependency directories (remove the comment below to include it)
 vendor/
 /profiles
-/golangci-lint
 
 # IDEs directories
 .idea
