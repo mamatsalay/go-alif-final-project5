@@ -21,11 +21,14 @@ jobs:
           go-version: "stable"
           cache: false
 
-      - name: Clean Go cache
-        run: go clean -cache -modcache
-
       - name: Download Go modules
         run: go mod download
+
+      - name: Tidy Go modules
+        run: go mod tidy
+
+      - name: Build project (pre-warm build cache)
+        run: go build ./...
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
