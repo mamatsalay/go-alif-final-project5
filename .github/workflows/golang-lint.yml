@@ -21,7 +21,11 @@ jobs:
           go-version: "stable"
           cache: false
 
+      - name: Download Go modules
+        run: go mod download
 
+      - name: Tidy Go modules
+        run: go mod tidy
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
