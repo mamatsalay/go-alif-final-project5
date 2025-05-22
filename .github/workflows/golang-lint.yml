@@ -27,9 +27,6 @@ jobs:
       - name: Tidy Go modules
         run: go mod tidy
 
-      - name: Build project (pre-warm build cache)
-        run: go build ./...
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
