@@ -21,6 +21,9 @@ jobs:
           go-version: "stable"
           cache: false
 
+      - name: Clean Go cache
+        run: go clean -cache -modcache
+
       - name: Download Go modules
         run: go mod download
 
