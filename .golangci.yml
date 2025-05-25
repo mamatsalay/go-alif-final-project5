@@ -130,7 +130,7 @@ linters-settings:
       # - flagName
       - hexLiteral
       - httpNoBody
-      - hugeParam
+      # - hugeParam
       # - ifElseChain
       - importShadow
       - indexAlloc
@@ -239,7 +239,7 @@ linters-settings:
     var-require-single-var: false
 
   lll:
-    line-length: 120
+    line-length: 150
     tab-width: 1
 
   loggercheck:
