@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// AdminMiddleware - проверка пользователя на то что он имеет роль админа в базе
+// AdminMiddleware - проверка пользователя на то что он имеет роль админа в базе.
 func AdminMiddleware(authService *auth.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")

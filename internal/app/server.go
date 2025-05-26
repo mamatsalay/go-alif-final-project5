@@ -52,7 +52,11 @@ func StartServer() {
 		return
 	}
 
-	err = container.Invoke(func(router *gin.Engine, authHandler *handler.AuthHandler, adminHandler *admin.AdminHandler, serviceHandler *service.AuthService) {
+	err = container.Invoke(func(
+		router *gin.Engine,
+		authHandler *handler.AuthHandler,
+		adminHandler *admin.AdminHandler,
+		serviceHandler *service.AuthService) {
 		SetupRoutes(router, authHandler, adminHandler, serviceHandler)
 		err := router.Run(":8080")
 		if err != nil {

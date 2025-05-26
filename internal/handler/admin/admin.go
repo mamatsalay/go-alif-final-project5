@@ -1,4 +1,3 @@
-// internal/handler/admin/admin.go
 package admin
 
 import (
@@ -10,6 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
+)
+
+const (
+	errorStr = "error"
 )
 
 type AdminHandlerParams struct {
@@ -30,18 +33,18 @@ func NewAdminHandler(p AdminHandlerParams) *AdminHandler {
 	}
 }
 
-// CreateExercise обрабатывает запрос POST /admin/exercises (создаёт занятие)
+// CreateExercise обрабатывает запрос POST /admin/exercises (создаёт занятие).
 func (h *AdminHandler) CreateExercise(c *gin.Context) {
 	var ex exercise.Exercise
 	if err := c.ShouldBindJSON(&ex); err != nil {
-		h.Logger.Errorw("Invalid exercise data", "error", err)
+		h.Logger.Errorw("Invalid exercise data", errorStr, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
 	created, err := h.Service.CreateExercise(c.Request.Context(), ex)
 	if err != nil {
-		h.Logger.Errorw("Failed to create exercise", "error", err)
+		h.Logger.Errorw("Failed to create exercise", errorStr, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise"})
 		return
 	}
@@ -49,19 +52,19 @@ func (h *AdminHandler) CreateExercise(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
-// UpdateExercise обрабатывает запрос PUT /admin/exercises/:id (обновляет занятие)
+// UpdateExercise обрабатывает запрос PUT /admin/exercises/:id (обновляет занятие).
 func (h *AdminHandler) UpdateExercise(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Errorw("Invalid exercise ID", "id", idStr, "error", err)
+		h.Logger.Errorw("Invalid exercise ID", "id", idStr, errorStr, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise ID"})
 		return
 	}
 
 	var ex exercise.Exercise
 	if err := c.ShouldBindJSON(&ex); err != nil {
-		h.Logger.Errorw("Invalid exercise data", "error", err)
+		h.Logger.Errorw("Invalid exercise data", errorStr, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
@@ -69,7 +72,7 @@ func (h *AdminHandler) UpdateExercise(c *gin.Context) {
 
 	updated, err := h.Service.UpdateExercise(c.Request.Context(), ex)
 	if err != nil {
-		h.Logger.Errorw("Failed to update exercise", "id", id, "error", err)
+		h.Logger.Errorw("Failed to update exercise", "id", id, errorStr, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise"})
 		return
 	}
@@ -77,11 +80,11 @@ func (h *AdminHandler) UpdateExercise(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
-// GetAllExercises обрабатывает запрос GET /admin/exercises (выводит все занятия)
+// GetAllExercises обрабатывает запрос GET /admin/exercises (выводит все занятия).
 func (h *AdminHandler) GetAllExercises(c *gin.Context) {
 	exercises, err := h.Service.GetAllExercises(c.Request.Context())
 	if err != nil {
-		h.Logger.Errorw("Failed to retrieve exercises", "error", err)
+		h.Logger.Errorw("Failed to retrieve exercises", errorStr, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve exercises"})
 		return
 	}
