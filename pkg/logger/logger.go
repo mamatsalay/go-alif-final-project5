@@ -2,30 +2,29 @@ package logger
 
 import "go.uber.org/zap"
 
-var log *zap.Logger
+var log *zap.SugaredLogger
 
 func Init(mode string) {
+	var baseLogger *zap.Logger
 	var err error
 
-	if mode == "dev" {
-		log, err = zap.NewDevelopment()
-	} else {
-		log, err = zap.NewProduction()
+	switch mode {
+	case "dev":
+		baseLogger, err = zap.NewDevelopment()
+	default:
+		baseLogger, err = zap.NewProduction()
 	}
 
 	if err != nil {
 		panic("failed to initialize logger: " + err.Error())
 	}
+
+	log = baseLogger.Sugar()
 }
 
-func L() *zap.Logger {
+func L() *zap.SugaredLogger {
 	if log == nil {
 		Init("dev")
 	}
-
 	return log
-}
-
-func Sugar() *zap.SugaredLogger {
-	return L().Sugar()
 }

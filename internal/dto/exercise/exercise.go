@@ -1,0 +1,6 @@
+package exercise
+
+type CreateExerciseRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+}
