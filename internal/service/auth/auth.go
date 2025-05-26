@@ -87,10 +87,21 @@ func (s *AuthService) GetUserByUsername(ctx context.Context, username string) (*
 	return user, nil
 }
 
+func (s *AuthService) GetUserByUserID(ctx context.Context, id int) (*model.User, error) {
+	user, err := s.Repo.GetUserByUserID(ctx, id)
+	if err != nil {
+		s.Log.Errorw("failed to get user by user id", erorrs.ErrorKey, err)
+		return nil, fmt.Errorf("failed to get user by user id: %w", err)
+	}
+
+	return user, nil
+}
+
 func (s *AuthService) GenerateAccessToken(user *model.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
+		"version": user.TokenVersion,
 		"exp":     time.Now().Add(halfAnHour).Unix(),
 	}
 
@@ -115,4 +126,45 @@ func (s *AuthService) GenerateAndStoreRefreshToken(ctx context.Context, userID i
 	}
 
 	return token, nil
+}
+
+func (s *AuthService) UpdateRefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
+	rt, err := s.Repo.GetRefreshToken(ctx, refreshToken)
+	if err != nil {
+		s.Log.Errorw("failed to get refresh token", erorrs.ErrorKey, err)
+		return "", "", erorrs.ErrInvalidToken
+	}
+
+	if err := s.Repo.DeleteRefreshToken(ctx, refreshToken); err != nil {
+		s.Log.Errorw("failed to delete refresh token", erorrs.ErrorKey, err)
+		return "", "", erorrs.ErrInternal
+	}
+
+	access, err := s.RefreshAccessToken(ctx, rt.UserID)
+	if err != nil {
+		s.Log.Errorw("access token generation failed", "error", err)
+		return "", "", erorrs.ErrInternal
+	}
+
+	refresh, err := s.GenerateAndStoreRefreshToken(ctx, rt.UserID)
+	if err != nil {
+		s.Log.Errorw("refresh token generation failed", "error", err)
+		return "", "", erorrs.ErrInternal
+	}
+
+	return access, refresh, nil
+}
+
+func (s *AuthService) RefreshAccessToken(ctx context.Context, userID int) (string, error) {
+	err := s.Repo.IncrementTokenVersion(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to invalidate old tokens: %w", err)
+	}
+
+	user, err := s.Repo.GetUserByUserID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	return s.GenerateAccessToken(user)
 }

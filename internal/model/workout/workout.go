@@ -5,11 +5,12 @@ import (
 )
 
 type Workout struct {
-	DeletedAt *time.Time `json:"deleted_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"update_at"`
 	Category  string     `json:"category"`
 	Title     string     `json:"title"`
+	Name      string     `json:"name"`
 	ID        int        `json:"id"`
 	UserID    int        `json:"user_id"`
 }

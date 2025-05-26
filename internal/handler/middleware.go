@@ -7,6 +7,7 @@ import (
 	"strings"
 	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
+	"workout-tracker/internal/service/auth"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -18,12 +19,14 @@ import (
 type MiddlewareParams struct {
 	dig.In
 
-	Log *zap.SugaredLogger
+	Log     *zap.SugaredLogger
+	Service *auth.AuthService
 }
 
 type Middleware struct {
-	Log    *zap.SugaredLogger
-	Secret string
+	Log     *zap.SugaredLogger
+	Service *auth.AuthService
+	Secret  string
 }
 
 func NewMiddleware(params MiddlewareParams) *Middleware {
@@ -32,8 +35,9 @@ func NewMiddleware(params MiddlewareParams) *Middleware {
 		log.Fatal("JWT_SECRET environment variable not set")
 	}
 	return &Middleware{
-		Log:    params.Log,
-		Secret: secret,
+		Log:     params.Log,
+		Service: params.Service,
+		Secret:  secret,
 	}
 }
 
@@ -87,6 +91,27 @@ func (m *Middleware) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		role := user.Role(roleStr)
+
+		versionFloat, ok := claims["version"].(float64)
+		if !ok {
+			m.Log.Errorw("missing version in token")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid token version"})
+			return
+		}
+
+		tokenVersion := int(versionFloat)
+
+		u, err := m.Service.GetUserByUserID(c.Request.Context(), userID)
+		if err != nil {
+			m.Log.Errorw("failed to fetch user", "userID", userID, "error", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "user not found"})
+			return
+		}
+		if u.TokenVersion != tokenVersion {
+			m.Log.Warnw("token version mismatch", "tokenVersion", tokenVersion, "dbVersion", u.TokenVersion)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "token has been invalidated"})
+			return
+		}
 
 		c.Set("userID", userID)
 		c.Set("role", role)
