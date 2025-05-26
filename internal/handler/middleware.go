@@ -1,60 +1,116 @@
 package handler
 
 import (
+	"log"
 	"net/http"
+	"os"
 	"strings"
+	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
-	"workout-tracker/internal/service/auth"
+
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// AdminMiddleware - проверка пользователя на то что он имеет роль админа в базе.
-func AdminMiddleware(authService *auth.AuthService) gin.HandlerFunc {
+type MiddlewareParams struct {
+	dig.In
+
+	Log *zap.SugaredLogger
+}
+
+type Middleware struct {
+	Log    *zap.SugaredLogger
+	Secret string
+}
+
+func NewMiddleware(params MiddlewareParams) *Middleware {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Fatal("JWT_SECRET environment variable not set")
+	}
+	return &Middleware{
+		Log:    params.Log,
+		Secret: secret,
+	}
+}
+
+func (m *Middleware) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
+		auth := c.GetHeader("Authorization")
+		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
+			m.Log.Errorw("missing or invalid token ", "header", auth)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "missing or invalid token"})
 			return
 		}
 
-		// Убирает префикс из токена
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenStr == authHeader {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token required"})
-			c.Abort()
-			return
-		}
+		tokenStr := strings.TrimPrefix(auth, "Bearer ")
 
-		// Парсит JWT токен
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return []byte(authService.Secret), nil
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				m.Log.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, jwt.ErrTokenSignatureInvalid
+			}
+
+			return []byte(m.Secret), nil
 		})
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
+
+		if err != nil {
+			m.Log.Errorw("Unauthorized", "header", auth)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid token"})
 			return
 		}
 
-		// Получает клеймы из токена
 		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			m.Log.Errorw("Unauthorized", "header", auth)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid claims"})
+			return
+		}
+
+		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
+			m.Log.Errorw("Unauthorized", "header", auth)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid user id in token"})
 			return
 		}
 
-		// Проверяет роль админа
-		role, ok := claims["role"].(string)
-		if !ok || role != string(user.AdminRole) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Admin role required"})
-			c.Abort()
+		userID := int(userIDFloat)
+
+		roleStr, ok := claims["role"].(string)
+		if !ok {
+			m.Log.Errorw("Unauthorized", "header", auth)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid role in token"})
 			return
 		}
 
-		c.Set("user_id", claims["user_id"])
+		role := user.Role(roleStr)
+
+		c.Set("userID", userID)
+		c.Set("role", role)
+
+		c.Next()
+	}
+}
+
+func (m *Middleware) AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleValue, exists := c.Get("role")
+		role, ok := roleValue.(user.Role)
+		if !exists || !ok {
+			m.Log.Errorw("Unauthorized", "reason", "missing or invalid role in context")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "invalid role"})
+			return
+		}
+
+		if role != user.AdminRole {
+			m.Log.Errorw("Unauthorized", "reason", "user is not admin")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "access denied"})
+			return
+		}
+
 		c.Next()
 	}
 }

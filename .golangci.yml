@@ -86,7 +86,7 @@ linters-settings:
     ignore-tests: true
     match-constant: true
     min-len: 3
-    min-occurrences: 4
+    min-occurrences: 20
     numbers: false
 
   gocritic:

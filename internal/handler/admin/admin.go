@@ -3,16 +3,13 @@ package admin
 import (
 	"net/http"
 	"strconv"
-	"workout-tracker/internal/model/exercise"
+	dto "workout-tracker/internal/dto/exercise"
+	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/service/admin"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
-)
-
-const (
-	errorStr = "error"
 )
 
 type AdminHandlerParams struct {
@@ -33,23 +30,22 @@ func NewAdminHandler(p AdminHandlerParams) *AdminHandler {
 	}
 }
 
-// CreateExercise обрабатывает запрос POST /admin/exercises (создаёт занятие).
 func (h *AdminHandler) CreateExercise(c *gin.Context) {
-	var ex exercise.Exercise
+	var ex dto.CreateExerciseRequest
 	if err := c.ShouldBindJSON(&ex); err != nil {
-		h.Logger.Errorw("Invalid exercise data", errorStr, err)
+		h.Logger.Errorw("Invalid exercise data", erorrs.ErrorKey, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
 	created, err := h.Service.CreateExercise(c.Request.Context(), ex)
 	if err != nil {
-		h.Logger.Errorw("Failed to create exercise", errorStr, err)
+		h.Logger.Errorw("Failed to create exercise", erorrs.ErrorKey, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, created)
+	c.JSON(http.StatusCreated, gin.H{"exercise_id": created})
 }
 
 // UpdateExercise обрабатывает запрос PUT /admin/exercises/:id (обновляет занятие).
@@ -57,37 +53,54 @@ func (h *AdminHandler) UpdateExercise(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.Logger.Errorw("Invalid exercise ID", "id", idStr, errorStr, err)
+		h.Logger.Errorw("Invalid exercise ID", "id", idStr, erorrs.ErrorKey, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise ID"})
 		return
 	}
 
-	var ex exercise.Exercise
+	var ex dto.CreateExerciseRequest
 	if err := c.ShouldBindJSON(&ex); err != nil {
-		h.Logger.Errorw("Invalid exercise data", errorStr, err)
+		h.Logger.Errorw("Invalid exercise data", erorrs.ErrorKey, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
-	ex.ID = id
 
-	updated, err := h.Service.UpdateExercise(c.Request.Context(), ex)
+	err = h.Service.UpdateExercise(c.Request.Context(), id, ex)
 	if err != nil {
-		h.Logger.Errorw("Failed to update exercise", "id", id, errorStr, err)
+		h.Logger.Errorw("Failed to update exercise", "id", id, erorrs.ErrorKey, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise"})
 		return
 	}
 
-	c.JSON(http.StatusOK, updated)
+	c.JSON(http.StatusOK, gin.H{"answer": "exercise successfully updated"})
 }
 
-// GetAllExercises обрабатывает запрос GET /admin/exercises (выводит все занятия).
 func (h *AdminHandler) GetAllExercises(c *gin.Context) {
 	exercises, err := h.Service.GetAllExercises(c.Request.Context())
 	if err != nil {
-		h.Logger.Errorw("Failed to retrieve exercises", errorStr, err)
+		h.Logger.Errorw("Failed to retrieve exercises", erorrs.ErrorKey, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve exercises"})
 		return
 	}
 
 	c.JSON(http.StatusOK, exercises)
+}
+
+func (h *AdminHandler) DeleteExercise(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.Logger.Errorw("Invalid exercise ID", "id", idStr, erorrs.ErrorKey, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise ID"})
+		return
+	}
+
+	err = h.Service.DeleteExercise(c.Request.Context(), id)
+	if err != nil {
+		h.Logger.Errorw("Failed to delete exercise", erorrs.ErrorKey, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete exercise"})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, gin.H{"answer": "exercise successfully deleted"})
 }
