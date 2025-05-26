@@ -5,14 +5,19 @@ import (
 	middleware "workout-tracker/internal/handler"
 	"workout-tracker/internal/handler/admin"
 	handler "workout-tracker/internal/handler/auth"
+	"workout-tracker/internal/handler/workout"
 	"workout-tracker/internal/repository/exercise"
 	"workout-tracker/internal/repository/user"
+	workoutRepo "workout-tracker/internal/repository/workout"
 	adminService "workout-tracker/internal/service/admin"
 	service "workout-tracker/internal/service/auth"
+	workoutService "workout-tracker/internal/service/workout"
 	"workout-tracker/pkg/db"
 	"workout-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"go.uber.org/dig"
 )
 
@@ -29,6 +34,13 @@ func StartServer() {
 	err = container.Provide(db.New)
 	if err != nil {
 		log.Println("start db error: ", err)
+		return
+	}
+	err = container.Provide(func(d *db.DB) *pgxpool.Pool {
+		return d.Pool
+	})
+	if err != nil {
+		log.Println("failed to provide pgxpool.Pool: ", err)
 		return
 	}
 	err = container.Provide(user.NewRepository)
@@ -66,6 +78,21 @@ func StartServer() {
 		log.Println("start admin service error:", err)
 		return
 	}
+	err = container.Provide(workout.NewWorkoutHandler)
+	if err != nil {
+		log.Println("start workout handler error: ", err)
+		return
+	}
+	err = container.Provide(workoutRepo.NewWorkoutRepository)
+	if err != nil {
+		log.Println("start workout repo error: ", err)
+		return
+	}
+	err = container.Provide(workoutService.NewWorkoutService)
+	if err != nil {
+		log.Println("start workout service error: ", err)
+		return
+	}
 	err = container.Provide(gin.Default)
 	if err != nil {
 		log.Println("start gin error: ", err)
@@ -76,8 +103,9 @@ func StartServer() {
 		router *gin.Engine,
 		authHandler *handler.AuthHandler,
 		adminHandler *admin.AdminHandler,
+		workoutHandler *workout.WorkoutHandler,
 		middleware *middleware.Middleware) {
-		SetupRoutes(router, authHandler, adminHandler, middleware)
+		SetupRoutes(router, authHandler, adminHandler, workoutHandler, middleware)
 		err := router.Run(":8080")
 		if err != nil {
 			return

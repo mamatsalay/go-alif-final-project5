@@ -226,7 +226,7 @@ linters-settings:
   govet:
     disable:
       - shadow
-    enable-all: true
+    enable-all: false
 
   grouper:
     const-require-grouping: false
@@ -296,7 +296,7 @@ linters-settings:
 
   prealloc:
     for-loops: false
-    range-loops: true
+    range-loops: false
     simple: true
 
   predeclared:

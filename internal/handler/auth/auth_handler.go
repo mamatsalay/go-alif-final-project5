@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	dto "workout-tracker/internal/dto/user"
 	"workout-tracker/internal/erorrs"
@@ -91,19 +92,52 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.Service.GenerateAccessToken(user)
+	accessToken, err := h.Service.GenerateAccessToken(user)
 	if err != nil {
 		h.Logger.Errorw("Error generating access token", erorrs.ErrorKey, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	response := dto.LoginResponse{
-		Token:    token,
-		Username: user.Username,
-		Role:     user.Role,
-		UserID:   user.ID,
+	refreshToken, err := h.Service.GenerateAndStoreRefreshToken(c.Request.Context(), user.ID)
+	if err != nil {
+		h.Logger.Errorw("Error generating refresh token", erorrs.ErrorKey, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "refresh token generation failed"})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": response})
+	response := dto.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		Username:     user.Username,
+		Role:         user.Role,
+		UserID:       user.ID,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	accessToken, newRefreshToken, err := h.Service.UpdateRefreshToken(c, req.RefreshToken)
+	if err != nil {
+		status := http.StatusUnauthorized
+		if errors.Is(err, erorrs.ErrInternal) {
+			status = http.StatusInternalServerError
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+	})
 }
