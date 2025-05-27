@@ -28,7 +28,7 @@ func TestNew_DefaultEnv_Success(t *testing.T) {
 }
 
 func TestNew_InvalidHost_ShouldFail(t *testing.T) {
-	t.Setenv("DB_HOST", "invalid_host") // приведёт к ошибке соединения
+	t.Setenv("DB_HOST", "invalid_host")
 	t.Setenv("DB_PORT", "5432")
 	t.Setenv("DB_USER", "postgres")
 	t.Setenv("DB_PASSWORD", "postgres")

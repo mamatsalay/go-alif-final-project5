@@ -14,12 +14,12 @@ import (
 type AdminServiceParams struct {
 	dig.In
 	Log          *zap.SugaredLogger
-	ExerciseRepo *repo.ExerciseRepository
+	ExerciseRepo repo.AdminServiceInterface
 }
 
 type AdminService struct {
 	Log          *zap.SugaredLogger
-	ExerciseRepo *repo.ExerciseRepository
+	ExerciseRepo repo.AdminServiceInterface
 }
 
 func NewAdminService(params AdminServiceParams) *AdminService {

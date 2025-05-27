@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewLoggerFunc_DevMode(t *testing.T) {
-	// Test dev mode returns a SugaredLoggerInterface without error
 	l, err := newLoggerFunc("dev")
 	if err != nil {
 		t.Fatalf("expected no error for dev mode, got %v", err)
@@ -19,14 +18,12 @@ func TestNewLoggerFunc_DevMode(t *testing.T) {
 	sugar.Infof("formatted %s", "message")
 	sugar.Errorw("error message", "key", "value")
 
-	// Sync should not error
 	if err := sugar.Sync(); err != nil {
 		t.Errorf("expected no sync error, got %v", err)
 	}
 }
 
 func TestNewLoggerFunc_ProductionMode(t *testing.T) {
-	// Production (default) mode
 	l, err := newLoggerFunc("prod")
 	if err != nil {
 		t.Fatalf("expected no error for production mode, got %v", err)
@@ -42,14 +39,12 @@ func TestNewLoggerFunc_ProductionMode(t *testing.T) {
 }
 
 func TestNewLoggerFunc_Error(t *testing.T) {
-	// Swap out newLoggerFunc to simulate error
 	orig := newLoggerFunc
 	newLoggerFunc = func(mode string, opts ...zap.Option) (LoggerInterface, error) {
 		return nil, errors.New("init failed")
 	}
 	defer func() { newLoggerFunc = orig }()
 
-	// Init should panic on error
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("expected panic on init error, got none")
@@ -59,7 +54,6 @@ func TestNewLoggerFunc_Error(t *testing.T) {
 }
 
 func TestL_InitializesDefault(t *testing.T) {
-	// Reset global logger
 	mu.Lock()
 	log = nil
 	mu.Unlock()
@@ -69,7 +63,6 @@ func TestL_InitializesDefault(t *testing.T) {
 		t.Fatal("expected non-nil logger from L()")
 	}
 
-	// Subsequent calls should return same instance
 	l2 := L()
 	if l != l2 {
 		t.Error("expected L() to return same logger instance")
@@ -77,7 +70,6 @@ func TestL_InitializesDefault(t *testing.T) {
 }
 
 func TestConcurrency_InitAndL(t *testing.T) {
-	// Test that concurrent Init and L calls are safe
 	mu.Lock()
 	log = nil
 	mu.Unlock()
@@ -93,7 +85,6 @@ func TestConcurrency_InitAndL(t *testing.T) {
 	}
 	wg.Wait()
 
-	// After concurrent calls, L() should still return non-nil
 	if L() == nil {
 		t.Error("expected non-nil logger after concurrency")
 	}

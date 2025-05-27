@@ -24,12 +24,12 @@ const halfAnHour = time.Minute * 30
 type AuthServiceParams struct {
 	dig.In
 
-	Repo *user.UserRepository
+	Repo user.UserRepositoryInterface
 	Log  *zap.SugaredLogger
 }
 
 type AuthService struct {
-	Repo   *user.UserRepository
+	Repo   user.UserRepositoryInterface
 	Log    *zap.SugaredLogger
 	Secret string
 }

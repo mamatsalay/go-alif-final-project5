@@ -14,7 +14,6 @@ func (za zapAdapter) Sugar() SugaredLoggerInterface {
 	return za.Logger.Sugar()
 }
 
-// SugaredLoggerInterface описывает методы, используемые в коде
 type SugaredLoggerInterface interface {
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
@@ -22,13 +21,10 @@ type SugaredLoggerInterface interface {
 	Sync() error
 }
 
-// LoggerInterface — возвращает SugaredLoggerInterface
-// Фабрика для создания базового логгера
 type LoggerInterface interface {
 	Sugar() SugaredLoggerInterface
 }
 
-// newLoggerFunc может быть подменена в тестах
 var newLoggerFunc = func(mode string, opts ...zap.Option) (LoggerInterface, error) {
 	switch mode {
 	case "dev":
@@ -51,7 +47,6 @@ var (
 	log SugaredLoggerInterface
 )
 
-// Init инициализирует или перезаписывает глобальный логгер
 func Init(mode string, opts ...zap.Option) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -63,9 +58,7 @@ func Init(mode string, opts ...zap.Option) {
 	log = base.Sugar()
 }
 
-// L возвращает глобальный логгер, инициализируя его в dev по умолчанию
 func L() SugaredLoggerInterface {
-	// Double-checked locking to avoid deadlock
 	mu.Lock()
 	current := log
 	mu.Unlock()
