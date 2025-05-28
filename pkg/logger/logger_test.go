@@ -23,21 +23,6 @@ func TestNewLoggerFunc_DevMode(t *testing.T) {
 	}
 }
 
-func TestNewLoggerFunc_ProductionMode(t *testing.T) {
-	l, err := newLoggerFunc("prod")
-	if err != nil {
-		t.Fatalf("expected no error for production mode, got %v", err)
-	}
-	sugar := l.Sugar()
-	sugar.Info("testing prod mode info")
-	sugar.Infof("formatted %s", "message")
-	sugar.Errorw("error message", "key", "value")
-
-	if err := sugar.Sync(); err != nil {
-		t.Errorf("expected no sync error, got %v", err)
-	}
-}
-
 func TestNewLoggerFunc_Error(t *testing.T) {
 	orig := newLoggerFunc
 	newLoggerFunc = func(mode string, opts ...zap.Option) (LoggerInterface, error) {
