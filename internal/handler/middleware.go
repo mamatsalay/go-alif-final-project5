@@ -7,7 +7,6 @@ import (
 	"strings"
 	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
-	"workout-tracker/internal/service/auth"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -20,12 +19,12 @@ type MiddlewareParams struct {
 	dig.In
 
 	Log     *zap.SugaredLogger
-	Service *auth.AuthService
+	Service AuthService
 }
 
 type Middleware struct {
 	Log     *zap.SugaredLogger
-	Service *auth.AuthService
+	Service AuthService
 	Secret  string
 }
 

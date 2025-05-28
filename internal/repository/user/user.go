@@ -16,8 +16,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type DBPool interface {
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+}
 
 type UserRepositoryParams struct {
 	dig.In
@@ -27,7 +32,7 @@ type UserRepositoryParams struct {
 }
 
 type UserRepository struct {
-	Pool *pgxpool.Pool
+	Pool DBPool
 	Log  *zap.SugaredLogger
 }
 

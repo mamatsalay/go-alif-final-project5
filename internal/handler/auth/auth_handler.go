@@ -6,7 +6,6 @@ import (
 	dto "workout-tracker/internal/dto/user"
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/user"
-	"workout-tracker/internal/service/auth"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -17,12 +16,12 @@ import (
 type AuthHandlerParams struct {
 	dig.In
 
-	Service *auth.AuthService
+	Service AuthServiceInterface
 	Logger  *zap.SugaredLogger
 }
 
 type AuthHandler struct {
-	Service *auth.AuthService
+	Service AuthServiceInterface
 	Logger  *zap.SugaredLogger
 }
 

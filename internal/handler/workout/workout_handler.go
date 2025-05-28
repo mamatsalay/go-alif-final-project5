@@ -5,7 +5,6 @@ import (
 	"strconv"
 	dto "workout-tracker/internal/dto/workout"
 	"workout-tracker/internal/model/workoutexercisejoin"
-	"workout-tracker/internal/service/workout"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,12 +15,12 @@ import (
 type WorkoutHandlerParams struct {
 	dig.In
 
-	Service *workout.WorkoutService
+	Service WorkoutServiceInterface
 	Logger  *zap.SugaredLogger
 }
 
 type WorkoutHandler struct {
-	Service *workout.WorkoutService
+	Service WorkoutServiceInterface
 	Log     *zap.SugaredLogger
 }
 

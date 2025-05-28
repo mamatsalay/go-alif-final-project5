@@ -7,7 +7,7 @@ import (
 	dto "workout-tracker/internal/dto/workout"
 	model "workout-tracker/internal/model/workout"
 	joinModel "workout-tracker/internal/model/workoutexercisejoin"
-	"workout-tracker/internal/repository/workout"
+	workoutInterface "workout-tracker/internal/repository/workout"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -16,12 +16,12 @@ import (
 type WorkoutServiceParams struct {
 	dig.In
 
-	Repo *workout.WorkoutRepository
+	Repo workoutInterface.WorkoutRepositoryInterface
 	Log  *zap.SugaredLogger
 }
 
 type WorkoutService struct {
-	Repo *workout.WorkoutRepository
+	Repo workoutInterface.WorkoutRepositoryInterface
 	Log  *zap.SugaredLogger
 }
 
