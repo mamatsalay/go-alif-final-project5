@@ -1,16 +1,17 @@
+// user/repository.go
+
 package user
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"time"
 	"workout-tracker/internal/model/user"
 	"workout-tracker/internal/model/user/jwt"
-
-	"github.com/google/uuid"
 )
 
 type UserRepositoryInterface interface {
-	CreateUser(ctx context.Context, user user.User) (int, error)
+	CreateUser(ctx context.Context, u user.User) (int, error)
 	GetUserByUsername(ctx context.Context, username string) (*user.User, error)
 	GetUserByUserID(ctx context.Context, id int) (*user.User, error)
 	StoreRefreshToken(ctx context.Context, token string, userID int, expires time.Time) (uuid.UUID, error)

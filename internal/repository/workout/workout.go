@@ -3,26 +3,32 @@ package workout
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 	model "workout-tracker/internal/model/workout"
 	"workout-tracker/internal/model/workoutexercisejoin"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
 
+type DBPool interface {
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+}
+
 type WorkoutRepositoryParams struct {
 	dig.In
 
 	Log *zap.SugaredLogger
-	DB  *pgxpool.Pool
+	DB  DBPool
 }
 
 type WorkoutRepository struct {
 	Log  *zap.SugaredLogger
-	Pool *pgxpool.Pool
+	Pool DBPool
 }
 
 func NewWorkoutRepository(params WorkoutRepositoryParams) *WorkoutRepository {

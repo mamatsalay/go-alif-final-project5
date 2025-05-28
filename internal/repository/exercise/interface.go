@@ -3,15 +3,15 @@ package exercise
 import (
 	"context"
 	dto "workout-tracker/internal/dto/exercise"
-	"workout-tracker/internal/model/exercise"
+	model "workout-tracker/internal/model/exercise"
 )
 
-type AdminServiceInterface interface {
+type ExerciseRepositoryInterface interface {
 	CreateExercise(ctx context.Context, input dto.CreateExerciseRequest) (int, error)
-	UpdateExercise(ctx context.Context, id int, input dto.CreateExerciseRequest) error
-	GetAllExercises(ctx context.Context) ([]exercise.Exercise, error)
+	GetAllExercises(ctx context.Context) ([]model.Exercise, error)
 	DeleteExercise(ctx context.Context, id int) error
-	GetExerciseByID(ctx context.Context, id int) (*exercise.Exercise, error)
+	GetExerciseByID(ctx context.Context, id int) (*model.Exercise, error)
+	UpdateExercise(ctx context.Context, id int, input dto.CreateExerciseRequest) error
 }
 
-var _ AdminServiceInterface = (*ExerciseRepository)(nil)
+var _ ExerciseRepositoryInterface = (*ExerciseRepository)(nil)

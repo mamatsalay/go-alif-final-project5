@@ -2,179 +2,274 @@ package exercise
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"errors"
 	"testing"
 	"time"
 
-	dto "workout-tracker/internal/dto/exercise"
-	"workout-tracker/internal/erorrs"
-
-	"workout-tracker/pkg/db"
-
 	"github.com/jackc/pgx/v5"
-	"github.com/ory/dockertest/v3"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
+
+	model "workout-tracker/internal/dto/exercise"
+	"workout-tracker/internal/erorrs"
 )
 
-var exerciseRepo *ExerciseRepository
+// Re-import mocks
+// Assume mock.go is in same package path "workout-tracker/internal/repository/exercise"
 
-func TestMain(m *testing.M) {
-	t := &testing.T{} // initialize for Setenv
-	t.Setenv("DB_HOST", "localhost")
-	t.Setenv("DB_PORT", "5432")
-	t.Setenv("DB_USER", "postgres")
-	t.Setenv("DB_PASSWORD", "secret")
-	t.Setenv("DB_NAME", "testdb")
-
-	pooler, err := dockertest.NewPool("")
-	if err != nil {
-		panic(err)
-	}
-	resource, err := pooler.Run("postgres", "13-alpine", []string{
-		"POSTGRES_USER=postgres",
-		"POSTGRES_PASSWORD=secret",
-		"POSTGRES_DB=testdb",
-	})
-	if err != nil {
-		panic(err)
-	}
-	dsn := fmt.Sprintf(
-		"postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"),
-		resource.GetPort("5432/tcp"), os.Getenv("DB_NAME"),
-	)
-
-	pooler.MaxWait = 30 * time.Second
-	err = pooler.Retry(func() error {
-		t.Setenv("DB_URL", dsn)
-		database, err := db.New(zap.NewNop().Sugar())
-		if err != nil {
-			return err
-		}
-		return database.Pool.Ping(context.Background())
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	database, err := db.New(zap.NewNop().Sugar())
-	if err != nil {
-		panic(err)
-	}
-
-	exec := func(q string) {
-		if _, err := database.Pool.Exec(context.Background(), q); err != nil {
-			panic(err)
-		}
-	}
-	exec(`CREATE TABLE exercises (
-		id SERIAL PRIMARY KEY,
-		name TEXT UNIQUE NOT NULL,
-		description TEXT,
-		createdat TIMESTAMP DEFAULT NOW(),
-		updatedat TIMESTAMP DEFAULT NOW(),
-		deletedat TIMESTAMP
-	);`)
-
-	exerciseRepo = NewRepository(ExerciseRepositoryParams{
-		DB:  database,
-		Log: zap.NewNop().Sugar(),
-	})
-
-	code := m.Run()
-
-	database.Pool.Close()
-	_ = pooler.Purge(resource)
-	os.Exit(code)
+func setupRepo(mockPool *MockPool) *ExerciseRepository {
+	repo := &ExerciseRepository{Pool: mockPool, Log: zap.NewNop().Sugar()}
+	return repo
 }
 
-func TestCreateAndGetExercise(t *testing.T) {
-	ctx := context.Background()
-	req := dto.CreateExerciseRequest{Name: "Push-up", Description: "Upper body"}
-	id, err := exerciseRepo.CreateExercise(ctx, req)
-	require.NoError(t, err)
-	assert.Greater(t, id, 0)
+func TestCreateExercise_Success(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
 
-	e, err := exerciseRepo.GetExerciseByID(ctx, id)
-	require.NoError(t, err)
-	assert.Equal(t, id, e.ID)
-	assert.Equal(t, req.Name, e.Name)
-	assert.Equal(t, req.Description, e.Description)
+	ctx := context.Background()
+	sql := `INSERT INTO exercises(NAME, DESCRIPTION) VALUES ($1, $2) RETURNING id`
+	// stub QueryRow -> MockRow
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, "Name", "Desc").Return(mr)
+	// Scan sets id
+	mr.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		*(args.Get(0).(*int)) = 42
+	}).Return(nil)
+
+	id, err := repo.CreateExercise(ctx, model.CreateExerciseRequest{Name: "Name", Description: "Desc"})
+	assert.NoError(t, err)
+	assert.Equal(t, 42, id)
+
+	mp.AssertExpectations(t)
+	mr.AssertExpectations(t)
 }
 
-func TestCreateExercise_DuplicateName(t *testing.T) {
-	ctx := context.Background()
-	req := dto.CreateExerciseRequest{Name: "Sit-up", Description: "Core"}
-	_, err := exerciseRepo.CreateExercise(ctx, req)
-	require.NoError(t, err)
+func TestCreateExercise_Duplicate(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
 
-	_, err = exerciseRepo.CreateExercise(ctx, req)
+	ctx := context.Background()
+	sql := `INSERT INTO exercises(NAME, DESCRIPTION) VALUES ($1, $2) RETURNING id`
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, "N", "D").Return(mr)
+	mr.On("Scan", mock.Anything).Return(&pgconn.PgError{Code: "23505"})
+
+	id, err := repo.CreateExercise(ctx, model.CreateExerciseRequest{Name: "N", Description: "D"})
 	assert.ErrorIs(t, err, erorrs.ErrExerciseAlreadyExists)
-}
-
-func TestGetNonexistentExercise(t *testing.T) {
-	ctx := context.Background()
-	_, err := exerciseRepo.GetExerciseByID(ctx, 9999)
-	assert.ErrorIs(t, err, pgx.ErrNoRows)
-}
-
-func TestDeleteExercise(t *testing.T) {
-	ctx := context.Background()
-	req := dto.CreateExerciseRequest{Name: "Plank", Description: "Core hold"}
-	id, err := exerciseRepo.CreateExercise(ctx, req)
-	require.NoError(t, err)
-
-	err = exerciseRepo.DeleteExercise(ctx, id)
-	require.NoError(t, err)
-
-	_, err = exerciseRepo.GetExerciseByID(ctx, id)
-	assert.Error(t, err)
-}
-
-func TestUpdateExercise(t *testing.T) {
-	ctx := context.Background()
-	req := dto.CreateExerciseRequest{Name: "Lunge", Description: "Legs"}
-	id, err := exerciseRepo.CreateExercise(ctx, req)
-	require.NoError(t, err)
-
-	update := dto.CreateExerciseRequest{
-		Name:        "Lunge Updated",
-		Description: "Leg strength",
-	}
-	err = exerciseRepo.UpdateExercise(ctx, id, update)
-	require.NoError(t, err)
-
-	e, err := exerciseRepo.GetExerciseByID(ctx, id)
-	require.NoError(t, err)
-	assert.Equal(t, update.Name, e.Name)
-	assert.Equal(t, update.Description, e.Description)
+	assert.Zero(t, id)
 }
 
 func TestGetAllExercises(t *testing.T) {
-	ctx := context.Background()
-	exercises := []dto.CreateExerciseRequest{
-		{Name: "Deadlift", Description: "Back"},
-		{Name: "Bench Press", Description: "Chest"},
-	}
-	for _, ex := range exercises {
-		_, err := exerciseRepo.CreateExercise(ctx, ex)
-		require.NoError(t, err)
-	}
+	mp := &MockPool{}
+	repo := setupRepo(mp)
 
-	all, err := exerciseRepo.GetAllExercises(ctx)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(all), 2)
-	for _, ex := range exercises {
-		found := false
-		for _, got := range all {
-			if got.Name == ex.Name && got.Description == ex.Description {
-				found = true
-				break
-			}
-		}
-		assert.True(t, found, "exercise not found: %s", ex.Name)
-	}
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+           FROM exercises
+          WHERE deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("Query", ctx, sql).Return(mr, nil)
+	// Next once true then false
+	mr.On("Next").Return(true).Once()
+	mr.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			*args.Get(0).(*int) = 1
+			*args.Get(1).(*string) = "nm"
+			*args.Get(2).(*string) = "ds"
+			*args.Get(3).(*time.Time) = time.Now()
+			*args.Get(4).(*time.Time) = time.Now()
+		}).Return(nil).Once()
+	mr.On("Next").Return(false).Once()
+	mr.On("Err").Return(nil)
+	mr.On("Close").Return()
+
+	xs, err := repo.GetAllExercises(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, xs, 1)
+	assert.Equal(t, 1, xs[0].ID)
+}
+
+func TestDeleteExercise(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := "UPDATE exercises SET deletedat = $1 WHERE id = $2"
+	mp.On("Exec", ctx, sql, mock.Anything, 5).Return(pgconn.NewCommandTag(""), nil)
+
+	err := repo.DeleteExercise(ctx, 5)
+	assert.NoError(t, err)
+}
+
+func TestDeleteExercise_Error(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := "UPDATE exercises SET deletedat = $1 WHERE id = $2"
+	mp.On("Exec", ctx, sql, mock.Anything, 5).Return(pgconn.NewCommandTag(""), errors.New("fail"))
+
+	err := repo.DeleteExercise(ctx, 5)
+	assert.Error(t, err)
+}
+
+func TestGetExerciseByID(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+               FROM exercises
+              WHERE id = $1 AND deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, 7).Return(mr)
+	mr.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			*args.Get(0).(*int) = 7
+			*args.Get(1).(*string) = "e"
+			*args.Get(2).(*string) = "d"
+			*args.Get(3).(*time.Time) = time.Now()
+			*args.Get(4).(*time.Time) = time.Now()
+		}).Return(nil)
+
+	e, err := repo.GetExerciseByID(ctx, 7)
+	assert.NoError(t, err)
+	assert.Equal(t, 7, e.ID)
+}
+
+func TestGetExerciseByID_NotFound(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+               FROM exercises
+              WHERE id = $1 AND deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, 8).Return(mr)
+	// stub Scan to simulate not found
+	mr.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(pgx.ErrNoRows)
+
+	e, err := repo.GetExerciseByID(ctx, 8)
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+	assert.Nil(t, e)
+}
+
+func TestUpdateExercise(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `UPDATE exercises
+            SET name = $1, description = $2, updatedat = $3
+          WHERE id = $4`
+	mp.On("Exec", ctx, sql, "n", "d", mock.Anything, 9).Return(pgconn.NewCommandTag(""), nil)
+
+	err := repo.UpdateExercise(ctx, 9, model.CreateExerciseRequest{Name: "n", Description: "d"})
+	assert.NoError(t, err)
+}
+
+func TestUpdateExercise_Error(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `UPDATE exercises
+            SET name = $1, description = $2, updatedat = $3
+          WHERE id = $4`
+	mp.On("Exec", ctx, sql, "n", "d", mock.Anything, 9).Return(pgconn.NewCommandTag(""), errors.New("err"))
+
+	err := repo.UpdateExercise(ctx, 9, model.CreateExerciseRequest{Name: "n", Description: "d"})
+	assert.Error(t, err)
+}
+
+func TestCreateExercise_OtherError(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `INSERT INTO exercises(NAME, DESCRIPTION) VALUES ($1, $2) RETURNING id`
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, "X", "Y").Return(mr)
+	mr.On("Scan", mock.Anything).Return(errors.New("oops"))
+
+	id, err := repo.CreateExercise(ctx, model.CreateExerciseRequest{Name: "X", Description: "Y"})
+	assert.EqualError(t, err, "oops")
+	assert.Zero(t, id)
+}
+
+func TestGetAllExercises_QueryError(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+           FROM exercises
+          WHERE deletedat IS NULL`
+	var rows pgx.Rows = (*MockRow)(nil) // typed nil to avoid panic
+	mp.On("Query", ctx, sql).Return(rows, errors.New("qerr"))
+
+	xs, err := repo.GetAllExercises(ctx)
+	assert.Nil(t, xs)
+	assert.EqualError(t, err, "qerr")
+}
+
+func TestGetAllExercises_ScanError(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+           FROM exercises
+          WHERE deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("Query", ctx, sql).Return(mr, nil)
+	mr.On("Next").Return(true)
+	mr.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("scanfail"))
+	mr.On("Close").Return()
+
+	xs, err := repo.GetAllExercises(ctx)
+	assert.Nil(t, xs)
+	assert.EqualError(t, err, "scanfail")
+}
+
+func TestGetAllExercises_RowsErr(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+           FROM exercises
+          WHERE deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("Query", ctx, sql).Return(mr, nil)
+	mr.On("Next").Return(false)
+	mr.On("Err").Return(errors.New("itererr"))
+	mr.On("Close").Return()
+
+	xs, err := repo.GetAllExercises(ctx)
+	assert.Nil(t, xs)
+	assert.EqualError(t, err, "itererr")
+}
+
+func TestGetExerciseByID_ScanError(t *testing.T) {
+	mp := &MockPool{}
+	repo := setupRepo(mp)
+
+	ctx := context.Background()
+	sql := `SELECT id, name, description, createdat, updatedat
+               FROM exercises
+              WHERE id = $1 AND deletedat IS NULL`
+	mr := &MockRow{}
+	mp.On("QueryRow", ctx, sql, 10).Return(mr)
+	mr.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("scanidfail"))
+
+	e, err := repo.GetExerciseByID(ctx, 10)
+	assert.Nil(t, e)
+	assert.EqualError(t, err, "scanidfail")
 }

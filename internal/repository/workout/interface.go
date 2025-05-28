@@ -7,10 +7,10 @@ import (
 )
 
 type WorkoutRepositoryInterface interface {
-	CreateWorkout(ctx context.Context, input model.Workout) (int, error)
-	UpdateWorkout(ctx context.Context, workout model.Workout) error
-	DeleteWorkout(ctx context.Context, workoutID int, userID int) error
-	GetWorkoutByID(ctx context.Context, workoutID int, userID int) (*model.Workout, error)
+	CreateWorkout(ctx context.Context, w model.Workout) (int, error)
+	UpdateWorkout(ctx context.Context, w model.Workout) error
+	DeleteWorkout(ctx context.Context, workoutID, userID int) error
+	GetWorkoutByID(ctx context.Context, workoutID, userID int) (*model.Workout, error)
 	BulkInsertWorkoutExercises(ctx context.Context, list []workoutexercisejoin.WorkoutExercise) error
 	DeleteWorkoutExercises(ctx context.Context, workoutID int) error
 	GetWorkoutExercises(ctx context.Context, workoutID int) ([]workoutexercisejoin.WorkoutExercise, error)
