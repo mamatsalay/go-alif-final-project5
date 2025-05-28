@@ -19,7 +19,7 @@ func TestCreateExercise_Success(t *testing.T) {
 	ctx := t.Context()
 	mockRepo := new(MockExerciseRepo)
 	req := dto.CreateExerciseRequest{Name: "Push-up", Description: "Upper body exercise"}
-	mockRepo.On("CreateExercise", ctx, req).Return(42, nil)
+	mockRepo.On("CreateExercise", ctx, req).Return(0, nil)
 
 	svc := NewAdminService(AdminServiceParams{
 		Log:          zapLogger(),

@@ -17,27 +17,19 @@ type MockPool struct {
 }
 
 func (m *MockPool) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	callArgs := make([]interface{}, 0, lengthOffset+len(args))
-	callArgs = append(callArgs, ctx, sql)
-	callArgs = append(callArgs, args...)
+	callArgs := append([]interface{}{ctx, sql}, args...)
 	called := m.Called(callArgs...)
 	return called.Get(0).(pgx.Row)
 }
 
 func (m *MockPool) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	callArgs := make([]interface{}, 0, lengthOffset+len(args))
-	callArgs = append(callArgs, ctx, sql)
-	callArgs = append(callArgs, args...)
-
+	callArgs := append([]interface{}{ctx, sql}, args...)
 	called := m.Called(callArgs...)
 	return called.Get(0).(pgx.Rows), called.Error(1)
 }
 
 func (m *MockPool) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
-	callArgs := make([]interface{}, 0, lengthOffset+len(args))
-	callArgs = append(callArgs, ctx, sql)
-	callArgs = append(callArgs, args...)
-
+	callArgs := append([]interface{}{ctx, sql}, args...)
 	called := m.Called(callArgs...)
 	return called.Get(0).(pgconn.CommandTag), called.Error(1)
 }

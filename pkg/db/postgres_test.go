@@ -87,7 +87,7 @@ func TestMockTx_Methods(t *testing.T) {
 
 	// Exec
 	tag := pgconn.NewCommandTag("e")
-	tx.On("Exec", ctx, "sql", []interface{}{1}).Return(tag, nil)
+	tx.On("Exec", ctx, "sql", 1).Return(tag, nil)
 	tOut, err := tx.Exec(ctx, "sql", 1)
 	assert.Equal(t, tag, tOut)
 	assert.NoError(t, err)
@@ -113,7 +113,8 @@ func TestMockTx_Methods(t *testing.T) {
 
 	// Query
 	var dummyRows pgx.Rows = new(MockRow)
-	tx.On("Query", ctx, "qs", []interface{}{2}).Return(dummyRows, nil)
+	dummyRows.(*MockRow).On("Close").Return(nil)
+	tx.On("Query", ctx, "qs", 2).Return(dummyRows, nil)
 	rows, err := tx.Query(ctx, "qs", 2)
 	assert.Same(t, dummyRows, rows)
 	assert.NoError(t, err)
@@ -121,7 +122,7 @@ func TestMockTx_Methods(t *testing.T) {
 
 	// QueryRow
 	var dummyRow pgx.Row = new(MockRow)
-	tx.On("QueryRow", ctx, "qr", []interface{}{3}).Return(dummyRow)
+	tx.On("QueryRow", ctx, "qr", 3).Return(dummyRow)
 	r := tx.QueryRow(ctx, "qr", 3)
 	assert.Same(t, dummyRow, r)
 
@@ -158,6 +159,7 @@ func TestMockBatchResults_Methods(t *testing.T) {
 
 	// Query
 	var dummyRows pgx.Rows = new(MockRow)
+	dummyRows.(*MockRow).On("Close").Return(nil)
 	br.On("Query").Return(dummyRows, errors.New("qerr"))
 	r, err := br.Query()
 	assert.Same(t, dummyRows, r)

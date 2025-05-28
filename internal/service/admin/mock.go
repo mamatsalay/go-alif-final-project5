@@ -15,12 +15,29 @@ type MockExerciseRepo struct {
 
 func (m *MockExerciseRepo) CreateExercise(ctx context.Context, input dto.CreateExerciseRequest) (int, error) {
 	args := m.Called(ctx, input)
-	return args.Int(0), fmt.Errorf("error creating exercise: %w", args.Error(1))
+	err := args.Error(1)
+	if err != nil {
+		return 0, fmt.Errorf("error creating exercise: %w", err)
+	}
+	return args.Int(0), nil
 }
 
 func (m *MockExerciseRepo) UpdateExercise(ctx context.Context, id int, input dto.CreateExerciseRequest) error {
 	args := m.Called(ctx, id, input)
-	return fmt.Errorf("error updating exercise: %w", args.Error(0))
+	err := args.Error(0)
+	if err != nil {
+		return fmt.Errorf("error updating exercise: %w", err)
+	}
+	return nil
+}
+
+func (m *MockExerciseRepo) DeleteExercise(ctx context.Context, id int) error {
+	args := m.Called(ctx, id)
+	err := args.Error(0)
+	if err != nil {
+		return fmt.Errorf("error deleting exercise: %w", err)
+	}
+	return nil
 }
 
 func (m *MockExerciseRepo) GetAllExercises(ctx context.Context) ([]exercise.Exercise, error) {
@@ -28,19 +45,15 @@ func (m *MockExerciseRepo) GetAllExercises(ctx context.Context) ([]exercise.Exer
 
 	exList, ok := args.Get(0).([]exercise.Exercise)
 	if !ok {
-		return nil, fmt.Errorf("invalid type for []exercise.Exercise: %w", args.Error(1))
+		return nil, fmt.Errorf("invalid type for []exercise.Exercise")
 	}
 
-	if err := args.Error(1); err != nil {
+	err := args.Error(1)
+	if err != nil {
 		return nil, fmt.Errorf("error in GetAllExercises: %w", err)
 	}
 
 	return exList, nil
-}
-
-func (m *MockExerciseRepo) DeleteExercise(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return fmt.Errorf("error deliting exercise: %w", args.Error(0))
 }
 
 func (m *MockExerciseRepo) GetExerciseByID(ctx context.Context, id int) (*exercise.Exercise, error) {
@@ -48,10 +61,11 @@ func (m *MockExerciseRepo) GetExerciseByID(ctx context.Context, id int) (*exerci
 
 	ex, ok := args.Get(0).(*exercise.Exercise)
 	if !ok {
-		return nil, fmt.Errorf("invalid type for *exercise.Exercise: %w", args.Error(1))
+		return nil, fmt.Errorf("invalid type for *exercise.Exercise")
 	}
 
-	if err := args.Error(1); err != nil {
+	err := args.Error(1)
+	if err != nil {
 		return nil, fmt.Errorf("error in GetExerciseByID: %w", err)
 	}
 

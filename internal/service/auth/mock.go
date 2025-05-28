@@ -17,7 +17,11 @@ type mockUserRepository struct {
 
 func (m *mockUserRepository) CreateUser(ctx context.Context, u user.User) (int, error) {
 	args := m.Called(ctx, u)
-	return args.Int(0), fmt.Errorf("error creating user: %w", args.Error(1))
+	err := args.Error(1)
+	if err != nil {
+		return 0, fmt.Errorf("error creating exercise: %w", err)
+	}
+	return args.Int(0), nil
 }
 
 func (m *mockUserRepository) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
@@ -82,10 +86,21 @@ func (m *mockUserRepository) GetRefreshToken(ctx context.Context, token string) 
 
 func (m *mockUserRepository) DeleteRefreshToken(ctx context.Context, token string) error {
 	args := m.Called(ctx, token)
-	return fmt.Errorf("error DeleteRefreshToken: %w", args.Error(0))
+
+	err := args.Error(0)
+	if err != nil {
+		return fmt.Errorf("error DeleteRefreshToken: %w", err)
+	}
+
+	return nil
 }
 
 func (m *mockUserRepository) IncrementTokenVersion(ctx context.Context, userID int) error {
 	args := m.Called(ctx, userID)
-	return fmt.Errorf("error IncrementTokenVersion: %w", args.Error(0))
+
+	err := args.Error(0)
+	if err != nil {
+		return fmt.Errorf("error IncrementTokenVersion: %w", err)
+	}
+	return nil
 }

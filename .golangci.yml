@@ -6,7 +6,11 @@ run:
   tests: true
   build-tags: [ ]
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
-  skip-files: [ ]
+  skip-files:
+    - ".*_mock.go"
+    - ".*mock.*\\.go"
+    - ".*mocks/.*\\.go"
+    - "_test.go"
 
   # Invariable parameters #
 

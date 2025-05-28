@@ -33,18 +33,18 @@ func TestCreateUser_Success(t *testing.T) {
 	}
 	expectedID := 42
 
+	// Provide expected behavior
 	mockPool.On("QueryRow", ctx,
 		"INSERT INTO users(username, password) VALUES($1, $2) RETURNING id",
 		userInput.Username, userInput.Password,
 	).Return(mockRow)
 
+	// FIX: use mock.AnythingOfType("*int")
 	mockRow.On("Scan", mock.AnythingOfType("*int")).Run(func(args mock.Arguments) {
-		arg0 := args.Get(0)
-		ptr, ok := arg0.(*int)
+		ptr, ok := args.Get(0).(*int)
 		if !ok {
-			t.Fatal("expected *int in mock call argument")
+			t.Fatalf("Scan called with non-*int argument: %T", args.Get(0))
 		}
-
 		*ptr = expectedID
 	}).Return(nil)
 
@@ -55,8 +55,8 @@ func TestCreateUser_Success(t *testing.T) {
 
 	id, err := repo.CreateUser(ctx, userInput)
 
-	assert.NoError(t, err)
-	assert.Equal(t, expectedID, id)
+	assert.NoError(t, err, "unexpected error from CreateUser")
+	assert.Equal(t, expectedID, id, "returned ID should match expected")
 
 	mockPool.AssertExpectations(t)
 	mockRow.AssertExpectations(t)
