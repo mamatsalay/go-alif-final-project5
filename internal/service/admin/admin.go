@@ -6,19 +6,19 @@ import (
 	dto "workout-tracker/internal/dto/exercise"
 	"workout-tracker/internal/model/exercise"
 	repo "workout-tracker/internal/repository/exercise"
+	"workout-tracker/pkg/logger"
 
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type AdminServiceParams struct {
 	dig.In
-	Log          *zap.SugaredLogger
+	Log          logger.SugaredLoggerInterface
 	ExerciseRepo repo.ExerciseRepositoryInterface
 }
 
 type AdminService struct {
-	Log          *zap.SugaredLogger
+	Log          logger.SugaredLoggerInterface
 	ExerciseRepo repo.ExerciseRepositoryInterface
 }
 

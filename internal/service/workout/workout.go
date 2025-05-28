@@ -8,21 +8,21 @@ import (
 	model "workout-tracker/internal/model/workout"
 	joinModel "workout-tracker/internal/model/workoutexercisejoin"
 	workoutInterface "workout-tracker/internal/repository/workout"
+	"workout-tracker/pkg/logger"
 
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type WorkoutServiceParams struct {
 	dig.In
 
 	Repo workoutInterface.WorkoutRepositoryInterface
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 }
 
 type WorkoutService struct {
 	Repo workoutInterface.WorkoutRepositoryInterface
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 }
 
 func NewWorkoutService(params WorkoutServiceParams) *WorkoutService {
@@ -144,4 +144,13 @@ func (s *WorkoutService) GetWorkoutByID(ctx context.Context, userID int, workout
 		Workout:   *workout,
 		Exercises: exercises,
 	}, nil
+}
+
+func (s *WorkoutService) UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error {
+	err := s.Repo.UpdateWorkoutPhoto(ctx, workoutID, path)
+	if err != nil {
+		return fmt.Errorf("update workout photo: %w", err)
+	}
+
+	return nil
 }

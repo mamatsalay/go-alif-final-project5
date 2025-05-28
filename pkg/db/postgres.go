@@ -6,8 +6,7 @@ import (
 	"net"
 	"os"
 	"time"
-
-	"go.uber.org/zap"
+	"workout-tracker/pkg/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,7 +17,7 @@ type DB struct {
 	Pool *pgxpool.Pool
 }
 
-func New(logger *zap.SugaredLogger) (*DB, error) {
+func New(logger logger.SugaredLoggerInterface) (*DB, error) {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")

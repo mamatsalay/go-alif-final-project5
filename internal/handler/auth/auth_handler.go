@@ -6,23 +6,22 @@ import (
 	dto "workout-tracker/internal/dto/user"
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/user"
-
-	"go.uber.org/dig"
-	"go.uber.org/zap"
+	"workout-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/dig"
 )
 
 type AuthHandlerParams struct {
 	dig.In
 
 	Service AuthServiceInterface
-	Logger  *zap.SugaredLogger
+	Logger  logger.SugaredLoggerInterface
 }
 
 type AuthHandler struct {
 	Service AuthServiceInterface
-	Logger  *zap.SugaredLogger
+	Logger  logger.SugaredLoggerInterface
 }
 
 func NewAuthHandler(p AuthHandlerParams) *AuthHandler {

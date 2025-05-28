@@ -22,6 +22,11 @@ type stubRepo struct {
 	GetAllWorkoutsFn             func(ctx context.Context, userID int) ([]model.Workout, error)
 	GetWorkoutExercisesFn        func(ctx context.Context, workoutID int) ([]joinModel.WorkoutExercise, error)
 	GetWorkoutByIDFn             func(ctx context.Context, workoutID int, userID int) (*model.Workout, error)
+	UpdateWorkoutPhotoFn         func(ctx context.Context, workoutID int, path string) error
+}
+
+func (s *stubRepo) UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error {
+	return s.UpdateWorkoutPhotoFn(ctx, workoutID, path)
 }
 
 func (s *stubRepo) CreateWorkout(ctx context.Context, w model.Workout) (int, error) {

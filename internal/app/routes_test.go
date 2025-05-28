@@ -69,6 +69,10 @@ func (m *mockAdminService) DeleteExercise(ctx context.Context, id int) error {
 
 type mockWorkoutService struct{}
 
+func (m *mockWorkoutService) UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error {
+	return nil
+}
+
 func (m *mockWorkoutService) CreateWorkout(
 	ctx context.Context,
 	userID int,

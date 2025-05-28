@@ -5,21 +5,21 @@ import (
 	"strconv"
 	dto "workout-tracker/internal/dto/exercise"
 	"workout-tracker/internal/erorrs"
+	"workout-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type AdminHandlerParams struct {
 	dig.In
 	Service AdminServiceInterface
-	Logger  *zap.SugaredLogger
+	Logger  logger.SugaredLoggerInterface
 }
 
 type AdminHandler struct {
 	Service AdminServiceInterface
-	Logger  *zap.SugaredLogger
+	Logger  logger.SugaredLoggerInterface
 }
 
 func NewAdminHandler(p AdminHandlerParams) *AdminHandler {

@@ -6,12 +6,12 @@ import (
 	"time"
 	model "workout-tracker/internal/model/workout"
 	"workout-tracker/internal/model/workoutexercisejoin"
+	"workout-tracker/pkg/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type DBPool interface {
@@ -23,16 +23,16 @@ type DBPool interface {
 type WorkoutRepositoryParams struct {
 	dig.In
 
-	Log *zap.SugaredLogger
+	Log logger.SugaredLoggerInterface
 	DB  DBPool
 }
 
 type WorkoutRepository struct {
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 	Pool DBPool
 }
 
-func NewWorkoutRepository(params WorkoutRepositoryParams) *WorkoutRepository {
+func NewWorkoutRepository(params WorkoutRepositoryParams) WorkoutRepositoryInterface {
 	return &WorkoutRepository{
 		Log:  params.Log,
 		Pool: params.DB,
@@ -188,4 +188,18 @@ func (r *WorkoutRepository) GetAllWorkouts(ctx context.Context, userID int) ([]m
 	}
 
 	return workouts, nil
+}
+
+func (r *WorkoutRepository) UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error {
+	_, err := r.Pool.Exec(ctx, `
+		UPDATE workouts
+		SET photo_path = $1, updatedat = NOW()
+		WHERE id = $2
+	`, path, workoutID)
+	if err != nil {
+		r.Log.Errorw("failed to update workout photo", "error", err)
+		return fmt.Errorf("update workout photo: %w", err)
+	}
+
+	return nil
 }

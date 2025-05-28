@@ -186,7 +186,7 @@ func TestDeleteRefreshToken_Error(t *testing.T) {
 	err := repo.DeleteRefreshToken(ctx, token)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "delete refresh token")
+	assert.Contains(t, err.Error(), "error deleting refresh token: db error")
 }
 
 func TestIncrementTokenVersion_Error(t *testing.T) {

@@ -7,13 +7,18 @@ import (
 )
 
 type FakeService struct {
-	CreateErr   error
-	UpdateErr   error
-	DeleteErr   error
-	AllErr      error
-	AllResponse []dto.WorkoutWithExercises
-	GetErr      error
-	GetResponse *dto.WorkoutWithExercises
+	CreateErr      error
+	UpdateErr      error
+	DeleteErr      error
+	AllErr         error
+	AllResponse    []dto.WorkoutWithExercises
+	GetErr         error
+	GetResponse    *dto.WorkoutWithExercises
+	UpdatePhotoErr error
+}
+
+func (f *FakeService) UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error {
+	return f.UpdatePhotoErr
 }
 
 func (f *FakeService) CreateWorkout(ctx context.Context, userID int, name, title, category string,

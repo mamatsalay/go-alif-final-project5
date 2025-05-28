@@ -1,27 +1,28 @@
 package workout
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	dto "workout-tracker/internal/dto/workout"
 	"workout-tracker/internal/model/workoutexercisejoin"
+	"workout-tracker/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type WorkoutHandlerParams struct {
 	dig.In
 
 	Service WorkoutServiceInterface
-	Logger  *zap.SugaredLogger
+	Logger  logger.SugaredLoggerInterface
 }
 
 type WorkoutHandler struct {
 	Service WorkoutServiceInterface
-	Log     *zap.SugaredLogger
+	Log     logger.SugaredLoggerInterface
 }
 
 func NewWorkoutHandler(params WorkoutHandlerParams) *WorkoutHandler {
@@ -126,4 +127,32 @@ func (h *WorkoutHandler) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *WorkoutHandler) UpdatePhoto(c *gin.Context) {
+	workoutID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workout ID"})
+		return
+	}
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "photo is required"})
+		return
+	}
+
+	filename := fmt.Sprintf("uploads/workouts/%d_%s", workoutID, file.Filename)
+
+	if err := c.SaveUploadedFile(file, filename); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
+		return
+	}
+
+	if err := h.Service.UpdateWorkoutPhoto(c, workoutID, filename); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update workout photo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "photo uploaded successfully"})
 }

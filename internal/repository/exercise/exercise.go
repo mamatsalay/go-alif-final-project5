@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"workout-tracker/pkg/logger"
 
 	dto "workout-tracker/internal/dto/exercise"
 	"workout-tracker/internal/erorrs"
@@ -13,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type DBPool interface {
@@ -25,12 +25,12 @@ type DBPool interface {
 type ExerciseRepositoryParams struct {
 	dig.In
 	DB  *db.DB
-	Log *zap.SugaredLogger
+	Log logger.SugaredLoggerInterface
 }
 
 type ExerciseRepository struct {
 	Pool DBPool
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 }
 
 func NewRepository(params ExerciseRepositoryParams) *ExerciseRepository {

@@ -25,11 +25,10 @@ func StartServer() {
 	container := dig.New()
 
 	logger.Init("dev")
-	err := container.Provide(logger.L)
-	if err != nil {
-		log.Println("start logger error: ", err)
-		return
-	}
+
+	err := container.Provide(func() logger.SugaredLoggerInterface {
+		return logger.L()
+	})
 
 	err = container.Provide(db.New)
 	if err != nil {
@@ -43,9 +42,11 @@ func StartServer() {
 		log.Println("failed to provide pgxpool.Pool: ", err)
 		return
 	}
-	err = container.Provide(user.NewRepository)
+	err = container.Provide(func(params user.UserRepositoryParams) user.UserRepositoryInterface {
+		return user.NewRepository(params)
+	})
 	if err != nil {
-		log.Println("start user repo error: ", err)
+		log.Println("failed to provide user.Repository: ", err)
 		return
 	}
 	err = container.Provide(exercise.NewRepository)
@@ -53,9 +54,25 @@ func StartServer() {
 		log.Println("start exercise repo error: ", err)
 		return
 	}
-	err = container.Provide(service.NewAuthService)
+	err = container.Provide(func(repo *exercise.ExerciseRepository) exercise.ExerciseRepositoryInterface {
+		return repo
+	})
+	if err != nil {
+		log.Println("bind ExerciseRepositoryInterface error:", err)
+		return
+	}
+	err = container.Provide(func(params service.AuthServiceParams) handler.AuthServiceInterface {
+		return service.NewAuthService(params)
+	})
 	if err != nil {
 		log.Println("start auth service error: ", err)
+		return
+	}
+	err = container.Provide(func(pool *pgxpool.Pool) workoutRepo.DBPool {
+		return pool
+	})
+	if err != nil {
+		log.Println("start workout-repo error: ", err)
 		return
 	}
 	err = container.Provide(handler.NewAuthHandler)
@@ -63,6 +80,21 @@ func StartServer() {
 		log.Println("start auth handler error: ", err)
 		return
 	}
+	err = container.Provide(func(params service.AuthServiceParams) middleware.AuthService {
+		return service.NewAuthService(params)
+	})
+	if err != nil {
+		log.Println("start auth service error: ", err)
+		return
+	}
+	err = container.Provide(func(s *adminService.AdminService) admin.AdminServiceInterface {
+		return s
+	})
+	if err != nil {
+		log.Println("bind AdminServiceInterface error:", err)
+		return
+	}
+
 	err = container.Provide(admin.NewAdminHandler)
 	if err != nil {
 		log.Println("start admin handler error: ", err)
@@ -91,6 +123,13 @@ func StartServer() {
 	err = container.Provide(workoutService.NewWorkoutService)
 	if err != nil {
 		log.Println("start workout service error: ", err)
+		return
+	}
+	err = container.Provide(func(s *workoutService.WorkoutService) workout.WorkoutServiceInterface {
+		return s
+	})
+	if err != nil {
+		log.Println("bind AdminServiceInterface error:", err)
 		return
 	}
 	err = container.Provide(gin.Default)
