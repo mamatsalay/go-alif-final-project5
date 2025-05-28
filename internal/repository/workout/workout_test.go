@@ -105,7 +105,7 @@ func TestGetWorkoutByID_Success(t *testing.T) {
 	w := model.Workout{ID: 7, UserID: 8, Name: "nm", Title: "tt", Category: "cc", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	row := new(MockRow)
 	mp.On("QueryRow", ctx, mock.Anything, w.ID, w.UserID).Return(row)
-	row.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	row.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
 
 	repo := setupRepo(mp)
