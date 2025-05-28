@@ -37,7 +37,7 @@ func setupRouter(fs *FakeService) *gin.Engine {
 func TestCreate_BadJSON(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/workouts", bytes.NewBufferString(`{invalid json}`))
+	req := httptest.NewRequest(http.MethodPost, "/workouts", bytes.NewBufferString(`{invalid json}`))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -48,7 +48,7 @@ func TestCreate_ServiceError(t *testing.T) {
 	payload := `{"name":"n","title":"t","category":"c","exercises":[{"exercise_id":1,"reps":5,"sets":2}]}`
 	body := bytes.NewBufferString(payload)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/workouts", body)
+	req := httptest.NewRequest(http.MethodPost, "/workouts", body)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -60,7 +60,7 @@ func TestUpdate_ServiceError(t *testing.T) {
 	reqBody := dto.CreateWorkoutWithExercisesRequest{Name: "n"}
 	bts, _ := json.Marshal(reqBody)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/workouts/5", bytes.NewBuffer(bts))
+	req := httptest.NewRequest(http.MethodPut, "/workouts/5", bytes.NewBuffer(bts))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -72,7 +72,7 @@ func TestUpdate_Success(t *testing.T) {
 	reqBody := dto.CreateWorkoutWithExercisesRequest{Name: "n"}
 	bts, _ := json.Marshal(reqBody)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/workouts/5", bytes.NewBuffer(bts))
+	req := httptest.NewRequest(http.MethodPut, "/workouts/5", bytes.NewBuffer(bts))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -85,7 +85,7 @@ func TestDelete_ServiceError(t *testing.T) {
 	fs := &FakeService{DeleteErr: errors.New("fail delete")}
 	r := setupRouter(fs)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/workouts/5", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/workouts/5", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -94,7 +94,7 @@ func TestDelete_Success(t *testing.T) {
 	fs := &FakeService{DeleteErr: nil}
 	r := setupRouter(fs)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/workouts/5", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/workouts/5", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp map[string]string
@@ -106,7 +106,7 @@ func TestGetAll_Error(t *testing.T) {
 	fs := &FakeService{AllErr: errors.New("fail all")}
 	r := setupRouter(fs)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/workouts", nil)
+	req := httptest.NewRequest(http.MethodGet, "/workouts", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -114,7 +114,7 @@ func TestGetAll_Error(t *testing.T) {
 func TestGet_InvalidID(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/workouts/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/workouts/abc", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -123,7 +123,7 @@ func TestGet_NotFound(t *testing.T) {
 	fs := &FakeService{GetErr: errors.New("not found")}
 	r := setupRouter(fs)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/workouts/5", nil)
+	req := httptest.NewRequest(http.MethodGet, "/workouts/5", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }

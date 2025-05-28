@@ -30,7 +30,7 @@ func setupRouter(fs AuthServiceInterface) *gin.Engine {
 func TestRegister_BadBind(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString("notjson"))
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString("notjson"))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -40,7 +40,7 @@ func TestRegister_HashError(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -50,7 +50,7 @@ func TestRegister_CreateError(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -60,7 +60,7 @@ func TestRegister_Success(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(payload))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -74,7 +74,7 @@ func TestRegister_Success(t *testing.T) {
 func TestLogin_BadBind(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString("x"))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString("x"))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -84,7 +84,7 @@ func TestLogin_GetUserError(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -94,7 +94,7 @@ func TestLogin_CheckPasswordError(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -104,7 +104,7 @@ func TestLogin_TokenError(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -114,7 +114,7 @@ func TestLogin_Success(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"username":"u","password":"p"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	var resp dto.LoginResponse
@@ -125,7 +125,7 @@ func TestLogin_Success(t *testing.T) {
 func TestRefresh_BadJSON(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/refresh", bytes.NewBufferString("{}"))
+	req := httptest.NewRequest(http.MethodPost, "/refresh", bytes.NewBufferString("{}"))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -135,7 +135,7 @@ func TestRefresh_Error(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"refresh_token":"rt"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/refresh", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/refresh", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
@@ -145,7 +145,7 @@ func TestRefresh_Success(t *testing.T) {
 	r := setupRouter(fs)
 	payload := `{"refresh_token":"rt"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/refresh", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/refresh", bytes.NewBufferString(payload))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp map[string]string
@@ -155,11 +155,13 @@ func TestRefresh_Success(t *testing.T) {
 }
 
 func TestLogin_RefreshGenerationError(t *testing.T) {
-	fs := &FakeService{FoundUser: &model.User{ID: 10, Username: "bob", Password: "h", Role: model.UserRole}, AccessToken: "at", RefreshErr: errors.New("storefail")}
+	fs := &FakeService{FoundUser: &model.User{
+		ID: 10, Username: "bob", Password: "h", Role: model.UserRole},
+		AccessToken: "at", RefreshErr: errors.New("storefail")}
 	r := setupRouter(fs)
 	payload := `{"username":"bob","password":"pw"}`
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(payload))
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(payload))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -168,7 +170,8 @@ func TestLogin_RefreshGenerationError(t *testing.T) {
 func TestRegister_BadContentType(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString(`{"username":"u","password":"p"}`))
+	req := httptest.NewRequest(http.MethodPost, "/register",
+		bytes.NewBufferString(`{"username":"u","password":"p"}`))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -176,7 +179,7 @@ func TestRegister_BadContentType(t *testing.T) {
 func TestRefresh_MissingField(t *testing.T) {
 	r := setupRouter(&FakeService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/refresh", bytes.NewBufferString(`{"token":"rt"}`))
+	req := httptest.NewRequest(http.MethodPost, "/refresh", bytes.NewBufferString(`{"token":"rt"}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)

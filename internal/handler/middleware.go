@@ -1,14 +1,15 @@
 package handler
 
 import (
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
+
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

@@ -32,7 +32,7 @@ func setupRouter(svc *FakeAdminService) *gin.Engine {
 func TestCreateExercise_BadJSON(t *testing.T) {
 	r := setupRouter(&FakeAdminService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/admin/exercises", bytes.NewBufferString("bad json"))
+	req := httptest.NewRequest(http.MethodPost, "/admin/exercises", bytes.NewBufferString("bad json"))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -45,7 +45,7 @@ func TestCreateExercise_CreateError(t *testing.T) {
 	}
 	data, _ := json.Marshal(body)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/admin/exercises", bytes.NewBuffer(data))
+	req := httptest.NewRequest(http.MethodPost, "/admin/exercises", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -59,7 +59,7 @@ func TestCreateExercise_Success(t *testing.T) {
 	}
 	data, _ := json.Marshal(body)
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/admin/exercises", bytes.NewBuffer(data))
+	req := httptest.NewRequest(http.MethodPost, "/admin/exercises", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -72,7 +72,7 @@ func TestCreateExercise_Success(t *testing.T) {
 func TestUpdateExercise_InvalidID(t *testing.T) {
 	r := setupRouter(&FakeAdminService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/admin/exercises/abc", bytes.NewBufferString(`{}`))
+	req := httptest.NewRequest(http.MethodPut, "/admin/exercises/abc", bytes.NewBufferString(`{}`))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -80,7 +80,7 @@ func TestUpdateExercise_InvalidID(t *testing.T) {
 func TestUpdateExercise_BadJSON(t *testing.T) {
 	r := setupRouter(&FakeAdminService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/admin/exercises/1", bytes.NewBufferString("not json"))
+	req := httptest.NewRequest(http.MethodPut, "/admin/exercises/1", bytes.NewBufferString("not json"))
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -91,7 +91,7 @@ func TestUpdateExercise_Error(t *testing.T) {
 	data, _ := json.Marshal(reqBody)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/admin/exercises/1", bytes.NewBuffer(data))
+	req := httptest.NewRequest(http.MethodPut, "/admin/exercises/1", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -103,7 +103,7 @@ func TestUpdateExercise_Success(t *testing.T) {
 	data, _ := json.Marshal(reqBody)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("PUT", "/admin/exercises/2", bytes.NewBuffer(data))
+	req := httptest.NewRequest(http.MethodPut, "/admin/exercises/2", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -121,7 +121,7 @@ func TestGetAllExercises_Success(t *testing.T) {
 		},
 	})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin/exercises", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin/exercises", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -133,7 +133,7 @@ func TestGetAllExercises_Success(t *testing.T) {
 func TestGetAllExercises_Error(t *testing.T) {
 	r := setupRouter(&FakeAdminService{GetAllErr: errors.New("db failure")})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin/exercises", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin/exercises", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -141,7 +141,7 @@ func TestGetAllExercises_Error(t *testing.T) {
 func TestDeleteExercise_InvalidID(t *testing.T) {
 	r := setupRouter(&FakeAdminService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/admin/exercises/xyz", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/admin/exercises/xyz", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -149,7 +149,7 @@ func TestDeleteExercise_InvalidID(t *testing.T) {
 func TestDeleteExercise_Error(t *testing.T) {
 	r := setupRouter(&FakeAdminService{DeleteErr: errors.New("delete failed")})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/admin/exercises/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/admin/exercises/1", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -157,7 +157,7 @@ func TestDeleteExercise_Error(t *testing.T) {
 func TestDeleteExercise_Success(t *testing.T) {
 	r := setupRouter(&FakeAdminService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/admin/exercises/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/admin/exercises/1", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNoContent, w.Code)
 

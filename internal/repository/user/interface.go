@@ -1,13 +1,12 @@
-// user/repository.go
-
 package user
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"time"
 	"workout-tracker/internal/model/user"
 	"workout-tracker/internal/model/user/jwt"
+
+	"github.com/google/uuid"
 )
 
 type UserRepositoryInterface interface {

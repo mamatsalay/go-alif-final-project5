@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"sync"
 
 	"go.uber.org/zap"
@@ -30,13 +31,13 @@ var newLoggerFunc = func(mode string, opts ...zap.Option) (LoggerInterface, erro
 	case "dev":
 		l, err := zap.NewDevelopment(opts...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating new zap logger: %w", err)
 		}
 		return zapAdapter{l}, nil
 	default:
 		l, err := zap.NewProduction(opts...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating new zap logger: %w", err)
 		}
 		return zapAdapter{l}, nil
 	}

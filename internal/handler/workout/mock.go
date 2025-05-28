@@ -16,10 +16,12 @@ type FakeService struct {
 	GetResponse *dto.WorkoutWithExercises
 }
 
-func (f *FakeService) CreateWorkout(ctx context.Context, userID int, name, title, category string, exercises []join.WorkoutExercise) error {
+func (f *FakeService) CreateWorkout(ctx context.Context, userID int, name, title, category string,
+	exercises []join.WorkoutExercise) error {
 	return f.CreateErr
 }
-func (f *FakeService) UpdateWorkout(ctx context.Context, userID, workoutID int, name, title, category string, exercises []join.WorkoutExercise) error {
+func (f *FakeService) UpdateWorkout(ctx context.Context, userID, workoutID int, name, title, category string,
+	exercises []join.WorkoutExercise) error {
 	return f.UpdateErr
 }
 func (f *FakeService) DeleteWorkout(ctx context.Context, userID, workoutID int) error {

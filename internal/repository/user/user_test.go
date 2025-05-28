@@ -1,15 +1,15 @@
 package user
 
 import (
-	"context"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"testing"
 	"time"
 	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,7 +22,7 @@ func (m MockCommandTag) String() string      { return "INSERT 0 1" }
 func (m MockCommandTag) RowsAffected() int64 { return 1 }
 
 func TestCreateUser_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	mockRow := new(MockRow)
 	log := zaptest.NewLogger(t).Sugar()
@@ -39,7 +39,12 @@ func TestCreateUser_Success(t *testing.T) {
 	).Return(mockRow)
 
 	mockRow.On("Scan", mock.AnythingOfType("*int")).Run(func(args mock.Arguments) {
-		ptr := args.Get(0).(*int)
+		arg0 := args.Get(0)
+		ptr, ok := arg0.(*int)
+		if !ok {
+			t.Fatal("expected *int in mock call argument")
+		}
+
 		*ptr = expectedID
 	}).Return(nil)
 
@@ -58,7 +63,7 @@ func TestCreateUser_Success(t *testing.T) {
 }
 
 func TestCreateUser_UsernameExists(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	mockRow := new(MockRow)
 	log := zaptest.NewLogger(t).Sugar()
@@ -92,7 +97,7 @@ func TestCreateUser_UsernameExists(t *testing.T) {
 }
 
 func TestGetUserByUsername_NotFound(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	mockRow := new(MockRow)
 	log := zaptest.NewLogger(t).Sugar()
@@ -111,7 +116,7 @@ func TestGetUserByUsername_NotFound(t *testing.T) {
 }
 
 func TestGetUserByUserID_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	mockRow := new(MockRow)
 	log := zaptest.NewLogger(t).Sugar()
@@ -131,7 +136,7 @@ func TestGetUserByUserID_Error(t *testing.T) {
 }
 
 func TestStoreRefreshToken_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	log := zaptest.NewLogger(t).Sugar()
 
@@ -150,7 +155,7 @@ func TestStoreRefreshToken_Success(t *testing.T) {
 }
 
 func TestGetRefreshToken_TokenNotFound(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	mockRow := new(MockRow)
 	log := zaptest.NewLogger(t).Sugar()
@@ -168,7 +173,7 @@ func TestGetRefreshToken_TokenNotFound(t *testing.T) {
 }
 
 func TestDeleteRefreshToken_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	log := zaptest.NewLogger(t).Sugar()
 
@@ -185,7 +190,7 @@ func TestDeleteRefreshToken_Error(t *testing.T) {
 }
 
 func TestIncrementTokenVersion_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockPool := new(MockPool)
 	log := zaptest.NewLogger(t).Sugar()
 

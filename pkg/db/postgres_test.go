@@ -1,11 +1,11 @@
 package db
 
 import (
-	"context"
 	"errors"
-	"github.com/stretchr/testify/mock"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,7 +14,7 @@ import (
 
 func TestMockPool_Ping_Close(t *testing.T) {
 	mp := new(MockPool)
-	ctx := context.Background()
+	ctx := t.Context()
 	mp.On("Ping", ctx).Return(errors.New("ping error"))
 	assert.EqualError(t, mp.Ping(ctx), "ping error")
 
@@ -78,7 +78,7 @@ func TestMockRow_Methods(t *testing.T) {
 
 func TestMockTx_Methods(t *testing.T) {
 	tx := new(MockTx)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Conn
 	conn := &pgx.Conn{}
@@ -117,6 +117,7 @@ func TestMockTx_Methods(t *testing.T) {
 	rows, err := tx.Query(ctx, "qs", 2)
 	assert.Same(t, dummyRows, rows)
 	assert.NoError(t, err)
+	defer rows.Close()
 
 	// QueryRow
 	var dummyRow pgx.Row = new(MockRow)
@@ -161,6 +162,7 @@ func TestMockBatchResults_Methods(t *testing.T) {
 	r, err := br.Query()
 	assert.Same(t, dummyRows, r)
 	assert.EqualError(t, err, "qerr")
+	defer r.Close()
 
 	// QueryRow
 	var dummyRow pgx.Row = new(MockRow)

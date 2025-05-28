@@ -2,12 +2,13 @@ package auth
 
 import (
 	"errors"
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 	"net/http"
 	dto "workout-tracker/internal/dto/user"
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/user"
+
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )

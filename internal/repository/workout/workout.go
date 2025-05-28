@@ -3,11 +3,12 @@ package workout
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 	model "workout-tracker/internal/model/workout"
 	"workout-tracker/internal/model/workoutexercisejoin"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"

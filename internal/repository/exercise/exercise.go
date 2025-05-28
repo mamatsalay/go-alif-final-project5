@@ -5,14 +5,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 	dto "workout-tracker/internal/dto/exercise"
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/exercise"
 	"workout-tracker/pkg/db"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 )
 
 type DBPool interface {

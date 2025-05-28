@@ -50,6 +50,7 @@ func (s *stubRepo) GetWorkoutByID(ctx context.Context, workoutID int, userID int
 }
 
 func newTestService(t *testing.T, repo *stubRepo) *workout.WorkoutService {
+	t.Helper()
 	logger := zaptest.NewLogger(t).Sugar()
 	return workout.NewWorkoutService(workout.WorkoutServiceParams{Repo: repo, Log: logger})
 }
@@ -65,7 +66,7 @@ func TestCreateWorkout_Success(t *testing.T) {
 	}
 	service := newTestService(t, repo)
 	exercises := []joinModel.WorkoutExercise{{ExerciseID: 1, Sets: 3}}
-	err := service.CreateWorkout(context.Background(), 1, "Test", "Title", "Strength", exercises)
+	err := service.CreateWorkout(t.Context(), 1, "Test", "Title", "Strength", exercises)
 	assert.NoError(t, err)
 }
 
@@ -79,7 +80,7 @@ func TestCreateWorkout_BulkInsertFails(t *testing.T) {
 		},
 	}
 	service := newTestService(t, repo)
-	err := service.CreateWorkout(context.Background(), 1, "Test", "Title", "Strength", nil)
+	err := service.CreateWorkout(t.Context(), 1, "Test", "Title", "Strength", nil)
 	assert.Error(t, err)
 }
 
@@ -90,7 +91,7 @@ func TestDeleteWorkout_Success(t *testing.T) {
 		},
 	}
 	service := newTestService(t, repo)
-	err := service.DeleteWorkout(context.Background(), 1, 1)
+	err := service.DeleteWorkout(t.Context(), 1, 1)
 	assert.NoError(t, err)
 }
 
@@ -104,7 +105,7 @@ func TestGetWorkoutByID_Success(t *testing.T) {
 		},
 	}
 	service := newTestService(t, repo)
-	res, err := service.GetWorkoutByID(context.Background(), 1, 1)
+	res, err := service.GetWorkoutByID(t.Context(), 1, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, res.Workout.ID)
 }
@@ -119,6 +120,6 @@ func TestGetAllWorkoutsWithExercises_FetchFails(t *testing.T) {
 		},
 	}
 	service := newTestService(t, repo)
-	_, err := service.GetAllWorkoutsWithExercises(context.Background(), 1)
+	_, err := service.GetAllWorkoutsWithExercises(t.Context(), 1)
 	assert.Error(t, err)
 }

@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"context"
 	"errors"
-	"go.uber.org/zap"
 	"os"
 	"testing"
 	"time"
@@ -11,13 +9,18 @@ import (
 	"workout-tracker/internal/model/user"
 	"workout-tracker/internal/model/user/jwt"
 
+	"go.uber.org/zap"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func setupTestEnvironment() {
-	os.Setenv("JWT_SECRET", "testsecret")
+	err := os.Setenv("JWT_SECRET", "testsecret")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func getTestLogger() *zap.SugaredLogger {
@@ -34,7 +37,7 @@ func TestAuthService_CreateUser(t *testing.T) {
 		Log:  getTestLogger(),
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	userInput := user.User{
 		Username: "testuser",
 		Password: "hashed",
@@ -59,7 +62,7 @@ func TestAuthService_CreateUser_Error(t *testing.T) {
 		Log:  getTestLogger(),
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	userInput := user.User{
 		Username: "testuser",
 		Password: "hashed",
@@ -115,7 +118,7 @@ func TestAuthService_GetUserByUsername(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	expectedUser := &user.User{
 		ID:       1,
@@ -136,7 +139,7 @@ func TestAuthService_GetUserByUsername_Error(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	repo.On("GetUserByUsername", ctx, "ghost").Return(nil, erorrs.ErrUserNotFound)
 
@@ -151,7 +154,7 @@ func TestAuthService_GetUserByUserID(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	expectedUser := &user.User{
 		ID:       123,
@@ -172,7 +175,7 @@ func TestAuthService_GetUserByUserID_Error(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	repo.On("GetUserByUserID", ctx, 404).Return(nil, erorrs.ErrUserNotFound)
 
@@ -187,7 +190,7 @@ func TestAuthService_GenerateAndStoreRefreshToken(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 	userID := 1
 
 	expectedUUID := uuid.New()
@@ -204,7 +207,7 @@ func TestAuthService_RefreshAccessToken(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	usr := &user.User{
 		ID:           1,
@@ -226,7 +229,7 @@ func TestAuthService_RefreshAccessToken_IncrementTokenVersionError(t *testing.T)
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: getTestLogger()})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	userID := 1
 	expectedError := errors.New("database error")
@@ -245,7 +248,7 @@ func TestAuthService_UpdateRefreshToken(t *testing.T) {
 
 	repo := new(mockUserRepository)
 	service := NewAuthService(AuthServiceParams{Repo: repo, Log: nil})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	refreshToken := "valid-refresh-token"
 	tokenID := uuid.New()
@@ -278,7 +281,10 @@ func TestAuthService_UpdateRefreshToken(t *testing.T) {
 }
 
 func TestAuthService_NewAuthService_PanicOnMissingSecret(t *testing.T) {
-	os.Unsetenv("JWT_SECRET")
+	err := os.Unsetenv("JWT_SECRET")
+	if err != nil {
+		panic(err)
+	}
 
 	assert.Panics(t, func() {
 		NewAuthService(AuthServiceParams{Repo: nil, Log: getTestLogger()})

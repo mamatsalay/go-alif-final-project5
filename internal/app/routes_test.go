@@ -2,12 +2,13 @@ package app
 
 import (
 	"context"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -68,10 +69,23 @@ func (m *mockAdminService) DeleteExercise(ctx context.Context, id int) error {
 
 type mockWorkoutService struct{}
 
-func (m *mockWorkoutService) CreateWorkout(ctx context.Context, userID int, name, title, category string, exercises []workoutexercisejoin.WorkoutExercise) error {
+func (m *mockWorkoutService) CreateWorkout(
+	ctx context.Context,
+	userID int,
+	name,
+	title,
+	category string,
+	exercises []workoutexercisejoin.WorkoutExercise) error {
 	return nil
 }
-func (m *mockWorkoutService) UpdateWorkout(ctx context.Context, userID, workoutID int, name, title, category string, exercises []workoutexercisejoin.WorkoutExercise) error {
+func (m *mockWorkoutService) UpdateWorkout(
+	ctx context.Context,
+	userID,
+	workoutID int,
+	name,
+	title,
+	category string,
+	exercises []workoutexercisejoin.WorkoutExercise) error {
 	return nil
 }
 func (m *mockWorkoutService) DeleteWorkout(ctx context.Context, userID, workoutID int) error {
@@ -85,8 +99,13 @@ func (m *mockWorkoutService) GetWorkoutByID(ctx context.Context, userID, workout
 }
 
 func TestSetupRoutes(t *testing.T) {
-	os.Setenv("JWT_SECRET", "testsecret")
-	defer os.Unsetenv("JWT_SECRET")
+	t.Setenv("JWT_SECRET", "testsecret")
+	defer func() {
+		err := os.Unsetenv("JWT_SECRET")
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -113,7 +132,7 @@ func TestSetupRoutes(t *testing.T) {
 
 	SetupRoutes(router, authHandler, adminHandler, workoutHandler, mw)
 
-	req, _ := http.NewRequest("GET", "/workouts", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/workouts", http.NoBody)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": float64(1),

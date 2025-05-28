@@ -1,7 +1,6 @@
 package workout
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -21,16 +20,20 @@ func setupRepo(mockPool *MockPool) *WorkoutRepository {
 }
 
 func TestCreateWorkout_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	ex := model.Workout{UserID: 1, Name: "n", Title: "t", Category: "c", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	row := new(MockRow)
 	mp.On("QueryRow", ctx, mock.Anything,
 		ex.UserID, ex.Name, ex.Title, ex.Category, ex.CreatedAt, ex.UpdatedAt).Return(row)
 	row.On("Scan", mock.AnythingOfType("*int")).Run(func(args mock.Arguments) {
-		*args.Get(0).(*int) = 55
+		arg := args.Get(0)
+		ptr, ok := arg.(*int)
+		if !ok {
+			t.Fatal("expected *int as first argument")
+		}
+		*ptr = 55
 	}).Return(nil)
-
 	repo := setupRepo(mp)
 	id, err := repo.CreateWorkout(ctx, ex)
 	assert.NoError(t, err)
@@ -38,7 +41,7 @@ func TestCreateWorkout_Success(t *testing.T) {
 }
 
 func TestCreateWorkout_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	ex := model.Workout{UserID: 2, Name: "n", Title: "t", Category: "c", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	row := new(MockRow)
@@ -53,7 +56,7 @@ func TestCreateWorkout_Error(t *testing.T) {
 }
 
 func TestUpdateWorkout_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	w := model.Workout{ID: 10, UserID: 3, Name: "n", Title: "tt", Category: "cc", UpdatedAt: time.Now()}
 	mp.On("Exec", ctx, mock.Anything,
@@ -65,7 +68,7 @@ func TestUpdateWorkout_Success(t *testing.T) {
 }
 
 func TestUpdateWorkout_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	w := model.Workout{ID: 11, UserID: 4, Name: "n", Title: "tt", Category: "cc", UpdatedAt: time.Now()}
 	mp.On("Exec", ctx, mock.Anything,
@@ -77,7 +80,7 @@ func TestUpdateWorkout_Error(t *testing.T) {
 }
 
 func TestDeleteWorkout_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	mp.On("Exec", ctx, mock.Anything, mock.Anything, 5, 20).Return(pgconn.NewCommandTag(""), nil)
 
@@ -87,7 +90,7 @@ func TestDeleteWorkout_Success(t *testing.T) {
 }
 
 func TestDeleteWorkout_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	mp.On("Exec", ctx, mock.Anything, mock.Anything, 6, 21).Return(pgconn.NewCommandTag(""), errors.New("faildel"))
 
@@ -97,7 +100,7 @@ func TestDeleteWorkout_Error(t *testing.T) {
 }
 
 func TestGetWorkoutByID_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	w := model.Workout{ID: 7, UserID: 8, Name: "nm", Title: "tt", Category: "cc", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	row := new(MockRow)
@@ -112,7 +115,7 @@ func TestGetWorkoutByID_Success(t *testing.T) {
 }
 
 func TestBulkInsertWorkoutExercises_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	list := []we.WorkoutExercise{{WorkoutID: 1, ExerciseID: 2, Reps: 3, Sets: 4}}
 	mp.On("Exec", ctx, mock.Anything, list[0].WorkoutID, list[0].ExerciseID, list[0].Reps, list[0].Sets).
@@ -124,7 +127,7 @@ func TestBulkInsertWorkoutExercises_Success(t *testing.T) {
 }
 
 func TestBulkInsertWorkoutExercises_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	list := []we.WorkoutExercise{{WorkoutID: 9, ExerciseID: 8, Reps: 7, Sets: 6}}
 	mp.On("Exec", ctx, mock.Anything, 9, 8, 7, 6).Return(pgconn.NewCommandTag(""), errors.New("insfail"))
@@ -135,7 +138,7 @@ func TestBulkInsertWorkoutExercises_Error(t *testing.T) {
 }
 
 func TestDeleteWorkoutExercises_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	mp.On("Exec", ctx, mock.Anything, 42).Return(pgconn.NewCommandTag(""), nil)
 
@@ -145,7 +148,7 @@ func TestDeleteWorkoutExercises_Success(t *testing.T) {
 }
 
 func TestDeleteWorkoutExercises_Error(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	mp.On("Exec", ctx, mock.Anything, 43).Return(pgconn.NewCommandTag(""), errors.New("delfail"))
 
@@ -155,7 +158,7 @@ func TestDeleteWorkoutExercises_Error(t *testing.T) {
 }
 
 func TestGetWorkoutExercises_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	r := new(MockRow)
 	mp.On("Query", ctx, mock.Anything, 50).Return(r, nil)
@@ -171,7 +174,7 @@ func TestGetWorkoutExercises_Success(t *testing.T) {
 }
 
 func TestGetWorkoutExercises_ScanError(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	r := new(MockRow)
 	mp.On("Query", ctx, mock.Anything, 52).Return(r, nil)
@@ -187,7 +190,7 @@ func TestGetWorkoutExercises_ScanError(t *testing.T) {
 }
 
 func TestGetAllWorkouts_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mp := new(MockPool)
 	r := new(MockRow)
 	mp.On("Query", ctx, mock.Anything, 100).Return(r, nil)
@@ -200,4 +203,48 @@ func TestGetAllWorkouts_Success(t *testing.T) {
 	wos, err := repo.GetAllWorkouts(ctx, 100)
 	assert.NoError(t, err)
 	assert.Len(t, wos, 1)
+}
+
+func TestGetWorkoutExercises_Empty(t *testing.T) {
+	ctx := t.Context()
+	mp := new(MockPool)
+	r := new(MockRow)
+	mp.On("Query", ctx, mock.Anything, 53).Return(r, nil)
+	r.On("Next").Return(false)
+	r.On("Close").Return()
+
+	repo := setupRepo(mp)
+	list, err := repo.GetWorkoutExercises(ctx, 53)
+	assert.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestGetAllWorkouts_Empty(t *testing.T) {
+	ctx := t.Context()
+	mp := new(MockPool)
+	r := new(MockRow)
+	mp.On("Query", ctx, mock.Anything, 101).Return(r, nil)
+	r.On("Next").Return(false)
+	r.On("Close").Return()
+
+	repo := setupRepo(mp)
+	wos, err := repo.GetAllWorkouts(ctx, 101)
+	assert.NoError(t, err)
+	assert.Empty(t, wos)
+}
+
+func TestGetAllWorkouts_ScanError(t *testing.T) {
+	ctx := t.Context()
+	mp := new(MockPool)
+	r := new(MockRow)
+	mp.On("Query", ctx, mock.Anything, 103).Return(r, nil)
+	r.On("Next").Return(true).Once()
+	r.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("scanfail"))
+	r.On("Close").Return()
+
+	repo := setupRepo(mp)
+	wos, err := repo.GetAllWorkouts(ctx, 103)
+	assert.Nil(t, wos)
+	assert.Error(t, err)
 }

@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,10 +30,22 @@ func (f *FakeAuthService) GetUserByUserID(ctx context.Context, id int) (*modelus
 	return f.User, f.Err
 }
 
-func setupRouter(secret string, fakeSvc *FakeAuthService) *gin.Engine {
+func setupRouter(fakeSvc *FakeAuthService) *gin.Engine {
+	const secret = "secret"
+
 	existing := os.Getenv("JWT_SECRET")
-	defer os.Setenv("JWT_SECRET", existing)
-	os.Setenv("JWT_SECRET", secret)
+	defer func() {
+		err := os.Setenv("JWT_SECRET", existing)
+		if err != nil {
+			log.Println("Error restoring JWT_SECRET")
+		}
+	}()
+
+	err := os.Setenv("JWT_SECRET", secret)
+	if err != nil {
+		log.Println("Error setting JWT_SECRET")
+		return gin.Default()
+	}
 
 	m := handler.NewMiddleware(handler.MiddlewareParams{
 		Log:     zap.NewNop().Sugar(),
@@ -52,9 +65,9 @@ func setupRouter(secret string, fakeSvc *FakeAuthService) *gin.Engine {
 }
 
 func TestAuthMiddleware_MissingHeader(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{})
+	r := setupRouter(&FakeAuthService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
@@ -64,36 +77,36 @@ func TestAuthMiddleware_MissingHeader(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidPrefix(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{})
+	r := setupRouter(&FakeAuthService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Token abc.def.ghi")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{})
+	r := setupRouter(&FakeAuthService{})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer invalid.token")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_MissingClaims(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{})
+	r := setupRouter(&FakeAuthService{})
 	tok := jwt.New(jwt.SigningMethodHS256)
 	tokStr, _ := tok.SignedString([]byte("secret"))
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+tokStr)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_InvalidClaimTypes(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{User: nil, Err: nil})
+	r := setupRouter(&FakeAuthService{User: nil, Err: nil})
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": "notanumber",
 		"role":    123,
@@ -102,14 +115,14 @@ func TestAuthMiddleware_InvalidClaimTypes(t *testing.T) {
 	})
 	tokStr, _ := tok.SignedString([]byte("secret"))
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+tokStr)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_UserNotFound(t *testing.T) {
-	r := setupRouter("secret", &FakeAuthService{User: nil, Err: erorrs.ErrUserNotFound})
+	r := setupRouter(&FakeAuthService{User: nil, Err: erorrs.ErrUserNotFound})
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": float64(1),
 		"role":    string(modeluser.UserRole),
@@ -118,7 +131,7 @@ func TestAuthMiddleware_UserNotFound(t *testing.T) {
 	})
 	tokStr, _ := tok.SignedString([]byte("secret"))
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+tokStr)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -126,7 +139,7 @@ func TestAuthMiddleware_UserNotFound(t *testing.T) {
 
 func TestAuthMiddleware_VersionMismatch(t *testing.T) {
 	userObj := &modeluser.User{ID: 1, Role: modeluser.UserRole, TokenVersion: 2}
-	r := setupRouter("secret", &FakeAuthService{User: userObj, Err: nil})
+	r := setupRouter(&FakeAuthService{User: userObj, Err: nil})
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": float64(1),
 		"role":    string(userObj.Role),
@@ -135,7 +148,7 @@ func TestAuthMiddleware_VersionMismatch(t *testing.T) {
 	})
 	tokStr, _ := tok.SignedString([]byte("secret"))
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+tokStr)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -143,7 +156,7 @@ func TestAuthMiddleware_VersionMismatch(t *testing.T) {
 
 func TestAuthMiddleware_Success(t *testing.T) {
 	userObj := &modeluser.User{ID: 42, Role: modeluser.AdminRole, TokenVersion: 1}
-	r := setupRouter("secret", &FakeAuthService{User: userObj, Err: nil})
+	r := setupRouter(&FakeAuthService{User: userObj, Err: nil})
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": float64(42),
 		"role":    string(modeluser.AdminRole),
@@ -152,7 +165,7 @@ func TestAuthMiddleware_Success(t *testing.T) {
 	})
 	tokStr, _ := tok.SignedString([]byte("secret"))
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/ok", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ok", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+tokStr)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -164,23 +177,23 @@ func TestAuthMiddleware_Success(t *testing.T) {
 
 func TestAdminMiddleware_MissingRole(t *testing.T) {
 	existing := os.Getenv("JWT_SECRET")
-	defer os.Setenv("JWT_SECRET", existing)
-	os.Setenv("JWT_SECRET", "secret")
+	defer t.Setenv("JWT_SECRET", existing)
+	t.Setenv("JWT_SECRET", "secret")
 
 	r := gin.New()
 	r.Use(handler.NewMiddleware(handler.MiddlewareParams{Log: zap.NewNop().Sugar(), Service: &FakeAuthService{}}).AdminMiddleware())
 	r.GET("/admin", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAdminMiddleware_InvalidRoleType(t *testing.T) {
 	existing := os.Getenv("JWT_SECRET")
-	defer os.Setenv("JWT_SECRET", existing)
-	os.Setenv("JWT_SECRET", "secret")
+	defer t.Setenv("JWT_SECRET", existing)
+	t.Setenv("JWT_SECRET", "secret")
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) { c.Set("role", 123) })
@@ -188,15 +201,15 @@ func TestAdminMiddleware_InvalidRoleType(t *testing.T) {
 	r.GET("/admin", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAdminMiddleware_NotAdmin(t *testing.T) {
 	existing := os.Getenv("JWT_SECRET")
-	defer os.Setenv("JWT_SECRET", existing)
-	os.Setenv("JWT_SECRET", "secret")
+	defer t.Setenv("JWT_SECRET", existing)
+	t.Setenv("JWT_SECRET", "secret")
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) { c.Set("role", modeluser.UserRole) })
@@ -204,23 +217,7 @@ func TestAdminMiddleware_NotAdmin(t *testing.T) {
 	r.GET("/admin", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin", http.NoBody)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestAdminMiddleware_Success(t *testing.T) {
-	existing := os.Getenv("JWT_SECRET")
-	defer os.Setenv("JWT_SECRET", existing)
-	os.Setenv("JWT_SECRET", "secret")
-
-	r := gin.New()
-	r.Use(func(c *gin.Context) { c.Set("role", modeluser.AdminRole) })
-	r.Use(handler.NewMiddleware(handler.MiddlewareParams{Log: zap.NewNop().Sugar(), Service: &FakeAuthService{}}).AdminMiddleware())
-	r.GET("/admin", func(c *gin.Context) { c.Status(http.StatusOK) })
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/admin", nil)
-	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
 }

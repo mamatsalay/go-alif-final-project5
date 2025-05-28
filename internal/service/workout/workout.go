@@ -3,13 +3,14 @@ package workout
 import (
 	"context"
 	"fmt"
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 	"time"
 	dto "workout-tracker/internal/dto/workout"
 	model "workout-tracker/internal/model/workout"
 	joinModel "workout-tracker/internal/model/workoutexercisejoin"
 	workoutInterface "workout-tracker/internal/repository/workout"
+
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 )
 
 type WorkoutServiceParams struct {
