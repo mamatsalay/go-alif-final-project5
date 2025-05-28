@@ -33,6 +33,21 @@ jobs:
       - name: Run tests and collect coverage
         run: go test $(go list ./... | grep -v '/cmd/') -coverprofile=coverage.out
 
+      - name: Filter coverage file
+        run: |
+          # Remove lines matching patterns you want to exclude
+          # Add more grep -v patterns for additional files/directories to exclude
+          grep -v '/mocks/' coverage.out | \
+          grep -v '/testdata/' | \
+          grep -v '/generated/' | \
+          grep -v '_mock.go' | \
+          grep -v '.pb.go' | \
+          grep -v '/vendor/' > coverage_filtered.out || true
+          
+          # Use filtered coverage if it has content, otherwise use original
+          if [ -s coverage_filtered.out ]; then
+            mv coverage_filtered.out coverage.out
+          fi
 
       - name: Convert coverage to Cobertura format
         run: $(which gocover-cobertura) < coverage.out > coverage.xml
