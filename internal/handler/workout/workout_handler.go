@@ -142,7 +142,7 @@ func (h *WorkoutHandler) UpdatePhoto(c *gin.Context) {
 		return
 	}
 
-	filename := fmt.Sprintf("uploads/workouts/%d_%s", workoutID, file.Filename)
+	filename := fmt.Sprintf("uploads/workouts/%d/%s", workoutID, file.Filename)
 
 	if err := c.SaveUploadedFile(file, filename); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
