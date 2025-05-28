@@ -18,6 +18,21 @@ func TestNewLoggerFunc_DevMode(t *testing.T) {
 	sugar.Infof("formatted %s", "message")
 	sugar.Errorw("error message", "key", "value")
 
+	if err := sugar.Sync(); err != nil && err.Error() != "sync /dev/stderr: invalid argument" {
+		t.Errorf("unexpected sync error: %v", err)
+	}
+}
+
+func TestNewLoggerFunc_ProductionMode(t *testing.T) {
+	l, err := newLoggerFunc("prod")
+	if err != nil {
+		t.Fatalf("expected no error for production mode, got %v", err)
+	}
+	sugar := l.Sugar()
+	sugar.Info("testing prod mode info")
+	sugar.Infof("formatted %s", "message")
+	sugar.Errorw("error message", "key", "value")
+
 	if err := sugar.Sync(); err != nil {
 		t.Errorf("expected no sync error, got %v", err)
 	}
