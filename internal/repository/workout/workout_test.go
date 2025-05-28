@@ -195,7 +195,7 @@ func TestGetAllWorkouts_Success(t *testing.T) {
 	r := new(MockRow)
 	mp.On("Query", ctx, mock.Anything, 100).Return(r, nil)
 	r.On("Next").Return(true).Once()
-	r.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	r.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	r.On("Next").Return(false).Once()
 	r.On("Close").Return()
 
@@ -239,7 +239,7 @@ func TestGetAllWorkouts_ScanError(t *testing.T) {
 	r := new(MockRow)
 	mp.On("Query", ctx, mock.Anything, 103).Return(r, nil)
 	r.On("Next").Return(true).Once()
-	r.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	r.On("Scan", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errors.New("scanfail"))
 	r.On("Close").Return()
 
