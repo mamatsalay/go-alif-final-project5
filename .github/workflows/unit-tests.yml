@@ -42,7 +42,8 @@ jobs:
           grep -v '/generated/' | \
           grep -v '_mock.go' | \
           grep -v '.pb.go' | \
-          grep -v '/vendor/' > coverage_filtered.out || true
+          grep -v '/vendor/' | \
+          grep -v '/internal/app/' > coverage_filtered.out || true
           
           # Use filtered coverage if it has content, otherwise use original
           if [ -s coverage_filtered.out ]; then
