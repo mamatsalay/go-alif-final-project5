@@ -2,14 +2,12 @@ package auth
 
 import (
 	"errors"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 	"net/http"
 	dto "workout-tracker/internal/dto/user"
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/user"
-	"workout-tracker/internal/service/auth"
-
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,12 +15,12 @@ import (
 type AuthHandlerParams struct {
 	dig.In
 
-	Service *auth.AuthService
+	Service AuthServiceInterface
 	Logger  *zap.SugaredLogger
 }
 
 type AuthHandler struct {
-	Service *auth.AuthService
+	Service AuthServiceInterface
 	Logger  *zap.SugaredLogger
 }
 

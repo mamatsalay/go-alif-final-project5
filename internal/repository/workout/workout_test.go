@@ -3,10 +3,10 @@ package workout
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 	"time"
+	"workout-tracker/pkg/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
@@ -18,32 +18,51 @@ import (
 	join "workout-tracker/internal/model/workoutexercisejoin"
 )
 
-var pool *pgxpool.Pool
-var repo *WorkoutRepository
+var (
+	pooler   *dockertest.Pool
+	resource *dockertest.Resource
+	pool     *pgxpool.Pool
+	repo     *WorkoutRepository
+)
 
 func TestMain(m *testing.M) {
-	pooler, err := dockertest.NewPool("")
+	t := &testing.T{} // временный T для Setenv
+	t.Setenv("DB_HOST", "localhost")
+	t.Setenv("DB_PORT", "5432")
+	t.Setenv("DB_USER", "postgres")
+	t.Setenv("DB_PASSWORD", "secret")
+	t.Setenv("DB_NAME", "testdb")
+
+	var err error
+	pooler, err = dockertest.NewPool("")
 	if err != nil {
 		panic(err)
 	}
-	resource, err := pooler.Run("postgres", "13-alpine", []string{
+	resource, err = pooler.Run("postgres", "13-alpine", []string{
 		"POSTGRES_USER=postgres",
 		"POSTGRES_PASSWORD=secret",
 		"POSTGRES_DB=testdb",
 	})
 	if err != nil {
-		log.Println("could not start postgres container")
 		panic(err)
 	}
-	dsn := fmt.Sprintf("postgres://postgres:secret@localhost:%s/testdb?sslmode=disable", resource.GetPort("5432/tcp"))
+
+	dsn := fmt.Sprintf(
+		"postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		resource.GetPort("5432/tcp"),
+		os.Getenv("DB_NAME"),
+	)
 
 	pooler.MaxWait = 30 * time.Second
 	err = pooler.Retry(func() error {
-		var err error
-		pool, err = pgxpool.New(context.Background(), dsn)
+		t.Setenv("DB_URL", dsn)
+		dbObj, err := db.New(zap.NewNop().Sugar())
 		if err != nil {
 			return err
 		}
+		pool = dbObj.Pool
 		return pool.Ping(context.Background())
 	})
 	if err != nil {
@@ -56,32 +75,36 @@ func TestMain(m *testing.M) {
 		}
 	}
 	exec(`CREATE TABLE workouts (
-	id SERIAL PRIMARY KEY,
-	user_id INT NOT NULL,
-	name TEXT,
-	title TEXT,
-	category TEXT,
-	createdat TIMESTAMP,
-	updatedat TIMESTAMP,
-	deletedat TIMESTAMP
-);`)
+		id SERIAL PRIMARY KEY,
+		user_id INT NOT NULL,
+		name TEXT,
+		title TEXT,
+		category TEXT,
+		createdat TIMESTAMP,
+		updatedat TIMESTAMP,
+		deletedat TIMESTAMP
+	);`)
 	exec(`CREATE TABLE workout_exercise (
-	workout_id INT,
-	exercise_id INT,
-	reps INT,
-	sets INT
-);`)
+		workout_id INT,
+		exercise_id INT,
+		reps INT,
+		sets INT
+	);`)
+
+	database, err := db.New(zap.NewNop().Sugar())
+	if err != nil {
+		panic(err)
+	}
 
 	repo = NewWorkoutRepository(WorkoutRepositoryParams{
 		Log: zap.NewNop().Sugar(),
-		DB:  pool,
+		DB:  database.Pool,
 	})
 
 	code := m.Run()
 
 	pool.Close()
 	_ = pooler.Purge(resource)
-
 	os.Exit(code)
 }
 

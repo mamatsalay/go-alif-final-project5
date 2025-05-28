@@ -10,11 +10,11 @@ import (
 )
 
 func TestNew_DefaultEnv_Success(t *testing.T) {
-	t.Setenv("DB_HOST", "")
-	t.Setenv("DB_PORT", "")
-	t.Setenv("DB_USER", "")
-	t.Setenv("DB_PASSWORD", "")
-	t.Setenv("DB_NAME", "")
+	t.Setenv("DB_HOST", "centerbeam.proxy.rlwy.net")
+	t.Setenv("DB_PORT", "35231")
+	t.Setenv("DB_USER", "postgres")
+	t.Setenv("DB_PASSWORD", "gesnsUZGmhNORJdxLZIBDXLBFSnGZnNJ")
+	t.Setenv("DB_NAME", "railway")
 
 	logger := zaptest.NewLogger(t).Sugar()
 	database, err := db.New(logger)

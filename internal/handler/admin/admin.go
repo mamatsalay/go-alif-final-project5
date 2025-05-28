@@ -5,7 +5,6 @@ import (
 	"strconv"
 	dto "workout-tracker/internal/dto/exercise"
 	"workout-tracker/internal/erorrs"
-	"workout-tracker/internal/service/admin"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
@@ -14,12 +13,12 @@ import (
 
 type AdminHandlerParams struct {
 	dig.In
-	Service *admin.AdminService
+	Service AdminServiceInterface
 	Logger  *zap.SugaredLogger
 }
 
 type AdminHandler struct {
-	Service *admin.AdminService
+	Service AdminServiceInterface
 	Logger  *zap.SugaredLogger
 }
 

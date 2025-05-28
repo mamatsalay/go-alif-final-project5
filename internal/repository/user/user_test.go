@@ -6,10 +6,8 @@ import (
 	"os"
 	"testing"
 	"time"
-	"workout-tracker/pkg/db"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,12 +15,19 @@ import (
 
 	errs "workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
+	"workout-tracker/pkg/db"
 )
 
-var pool *pgxpool.Pool
 var userRepo *UserRepository
 
 func TestMain(m *testing.M) {
+	t := &testing.T{}
+	t.Setenv("DB_HOST", "localhost")
+	t.Setenv("DB_PORT", "5432")
+	t.Setenv("DB_USER", "postgres")
+	t.Setenv("DB_PASSWORD", "secret")
+	t.Setenv("DB_NAME", "testdb")
+
 	pooler, err := dockertest.NewPool("")
 	if err != nil {
 		panic(err)
@@ -35,51 +40,60 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	dsn := fmt.Sprintf("postgres://postgres:secret@localhost:%s/testdb?sslmode=disable", resource.GetPort("5432/tcp"))
+
+	dsn := fmt.Sprintf(
+		"postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
+		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"),
+		resource.GetPort("5432/tcp"), os.Getenv("DB_NAME"),
+	)
+
 	pooler.MaxWait = 30 * time.Second
+	t.Setenv("DB_URL", dsn)
 	err = pooler.Retry(func() error {
-		var err error
-		pool, err = pgxpool.New(context.Background(), dsn)
+		database, err := db.New(zap.NewNop().Sugar())
 		if err != nil {
 			return err
 		}
-		return pool.Ping(context.Background())
+		return database.Pool.Ping(context.Background())
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	// Create tables
+	database, err := db.New(zap.NewNop().Sugar())
+	if err != nil {
+		panic(err)
+	}
+
 	exec := func(q string) {
-		if _, err := pool.Exec(context.Background(), q); err != nil {
+		if _, err := database.Pool.Exec(context.Background(), q); err != nil {
 			panic(err)
 		}
 	}
 	exec(`CREATE TABLE users (
-	id SERIAL PRIMARY KEY,
-	username TEXT UNIQUE NOT NULL,
-	password TEXT NOT NULL,
-	role TEXT NOT NULL DEFAULT 'user',
-	createdat TIMESTAMP,
-	updatedat TIMESTAMP,
-	token_version INT DEFAULT 0
-);`)
+		id SERIAL PRIMARY KEY,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL,
+		role TEXT NOT NULL DEFAULT 'user',
+		createdat TIMESTAMP DEFAULT NOW(),
+		updatedat TIMESTAMP DEFAULT NOW(),
+		token_version INT DEFAULT 0
+	);`)
 	exec(`CREATE TABLE refresh_tokens (
-	id UUID PRIMARY KEY,
-	user_id INT REFERENCES users(id),
-	token TEXT UNIQUE NOT NULL,
-	expires_at TIMESTAMP,
-	created_at TIMESTAMP DEFAULT NOW()
-);`)
+		id UUID PRIMARY KEY,
+		user_id INT REFERENCES users(id),
+		token TEXT UNIQUE NOT NULL,
+		expires_at TIMESTAMP,
+		created_at TIMESTAMP DEFAULT NOW()
+	);`)
 
 	userRepo = NewRepository(UserRepositoryParams{
-		DB:  (*db.DB)(&struct{ Pool *pgxpool.Pool }{Pool: pool}),
+		DB:  database,
 		Log: zap.NewNop().Sugar(),
 	})
 
 	code := m.Run()
-
-	pool.Close()
+	database.Pool.Close()
 	_ = pooler.Purge(resource)
 	os.Exit(code)
 }
