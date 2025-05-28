@@ -6,12 +6,6 @@ run:
   tests: true
   build-tags: [ ]
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
-  skip-files:
-    - ".*_mock.go"
-    - ".*mock.*\\.go"
-    - ".*mocks/.*\\.go"
-    - "_test.go"
-    - "server.go"
 
   # Invariable parameters #
 
@@ -152,7 +146,7 @@ linters-settings:
       - preferWriteByte
       - ptrToRefParam
       - rangeExprCopy
-      - rangeValCopy
+#      - rangeValCopy
       - redundantSprint
       # - regexpMust
       - returnAfterHttpError
@@ -544,6 +538,13 @@ linters:
 # Issues configuration
 issues:
   exclude: [ ]
+
+  exclude-files:
+    - ".*_mock.go"
+    - ".*mock.*\\.go"
+    - ".*mocks/.*\\.go"
+    - "_test.go"
+    - "server.go"
 
   uniq-by-line: true
   # Which dirs to exclude: issues from them won't be reported.
