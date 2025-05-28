@@ -9,13 +9,12 @@ import (
 	"workout-tracker/internal/model/user"
 	"workout-tracker/internal/model/user/jwt"
 	"workout-tracker/pkg/db"
-
-	"go.uber.org/dig"
-	"go.uber.org/zap"
+	"workout-tracker/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/dig"
 )
 
 type DBPool interface {
@@ -28,12 +27,12 @@ type UserRepositoryParams struct {
 	dig.In
 
 	DB  *db.DB
-	Log *zap.SugaredLogger
+	Log logger.SugaredLoggerInterface
 }
 
 type UserRepository struct {
 	Pool DBPool
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 }
 
 func NewRepository(params UserRepositoryParams) *UserRepository {
@@ -57,7 +56,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, user user.User) (int, e
 		return 0, fmt.Errorf("error inserting user: %w", err)
 	}
 
-	r.Log.Infow("user created", "id", id)
+	r.Log.Info("user created", "id", id)
 	return id, nil
 }
 
@@ -78,7 +77,7 @@ func (r *UserRepository) getUser(ctx context.Context, query string, arg any) (*u
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			r.Log.Infow("user not found", "arg", arg)
+			r.Log.Info("user not found", "arg", arg)
 			return nil, erorrs.ErrUserNotFound
 		}
 		r.Log.Errorw("error getting user", erorrs.ErrorKey, err, "arg", arg)
@@ -107,7 +106,7 @@ func (r *UserRepository) GetRefreshToken(ctx context.Context, token string) (*jw
 		token).Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			r.Log.Infow("refresh token not found", "token", token)
+			r.Log.Info("refresh token not found", "token", token)
 			return nil, erorrs.ErrTokenNotFound
 		}
 
@@ -120,7 +119,11 @@ func (r *UserRepository) GetRefreshToken(ctx context.Context, token string) (*jw
 
 func (r *UserRepository) DeleteRefreshToken(ctx context.Context, token string) error {
 	_, err := r.Pool.Exec(ctx, `DELETE FROM refresh_tokens WHERE token = $1`, token)
-	return fmt.Errorf("delete refresh token: %w", err)
+	if err != nil {
+		r.Log.Errorw("error deleting refresh token", erorrs.ErrorKey, err)
+		return fmt.Errorf("error deleting refresh token: %w", err)
+	}
+	return nil
 }
 
 func (r *UserRepository) IncrementTokenVersion(ctx context.Context, userID int) error {

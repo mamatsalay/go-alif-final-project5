@@ -7,9 +7,9 @@ import (
 	"strings"
 	"workout-tracker/internal/erorrs"
 	"workout-tracker/internal/model/user"
+	"workout-tracker/pkg/logger"
 
 	"go.uber.org/dig"
-	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -18,12 +18,12 @@ import (
 type MiddlewareParams struct {
 	dig.In
 
-	Log     *zap.SugaredLogger
+	Log     logger.SugaredLoggerInterface
 	Service AuthService
 }
 
 type Middleware struct {
-	Log     *zap.SugaredLogger
+	Log     logger.SugaredLoggerInterface
 	Service AuthService
 	Secret  string
 }
@@ -53,7 +53,7 @@ func (m *Middleware) AuthMiddleware() gin.HandlerFunc {
 
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				m.Log.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				m.Log.Errorw("Unexpected signing method: %v", token.Header["alg"])
 				return nil, jwt.ErrTokenSignatureInvalid
 			}
 
@@ -107,7 +107,7 @@ func (m *Middleware) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 		if u.TokenVersion != tokenVersion {
-			m.Log.Warnw("token version mismatch", "tokenVersion", tokenVersion, "dbVersion", u.TokenVersion)
+			m.Log.Info("token version mismatch", "tokenVersion", tokenVersion, "dbVersion", u.TokenVersion)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{erorrs.ErrorKey: "token has been invalidated"})
 			return
 		}

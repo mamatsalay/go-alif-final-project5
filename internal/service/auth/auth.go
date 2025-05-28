@@ -8,14 +8,13 @@ import (
 	"workout-tracker/internal/erorrs"
 	model "workout-tracker/internal/model/user"
 	"workout-tracker/internal/repository/user"
+	"workout-tracker/pkg/logger"
 
 	"golang.org/x/crypto/bcrypt"
 
-	"go.uber.org/dig"
-	"go.uber.org/zap"
-
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.uber.org/dig"
 )
 
 const oneMonth = time.Hour * 24 * 30
@@ -25,12 +24,12 @@ type AuthServiceParams struct {
 	dig.In
 
 	Repo user.UserRepositoryInterface
-	Log  *zap.SugaredLogger
+	Log  logger.SugaredLoggerInterface
 }
 
 type AuthService struct {
 	Repo   user.UserRepositoryInterface
-	Log    *zap.SugaredLogger
+	Log    logger.SugaredLoggerInterface
 	Secret string
 }
 

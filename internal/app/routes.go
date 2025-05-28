@@ -27,6 +27,7 @@ func SetupRoutes(r *gin.Engine, h *auth.AuthHandler, a *admin.AdminHandler, w *w
 	workout.GET("", w.GetAll)
 	workout.GET("/:id", w.Get)
 	workout.DELETE("/:id", w.Delete)
+	workout.POST("/:id/photo", w.UpdatePhoto)
 
 	allExercises := r.Group("/exercises").Use(m.AuthMiddleware())
 	allExercises.GET("", a.GetAllExercises)

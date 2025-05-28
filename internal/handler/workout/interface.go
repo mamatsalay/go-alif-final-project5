@@ -13,6 +13,7 @@ type WorkoutServiceInterface interface {
 	DeleteWorkout(ctx context.Context, userID, workoutID int) error
 	GetAllWorkoutsWithExercises(ctx context.Context, userID int) ([]dto.WorkoutWithExercises, error)
 	GetWorkoutByID(ctx context.Context, userID, workoutID int) (*dto.WorkoutWithExercises, error)
+	UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error
 }
 
 var _ WorkoutServiceInterface = (*workout.WorkoutService)(nil)

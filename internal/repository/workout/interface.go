@@ -15,6 +15,7 @@ type WorkoutRepositoryInterface interface {
 	DeleteWorkoutExercises(ctx context.Context, workoutID int) error
 	GetWorkoutExercises(ctx context.Context, workoutID int) ([]workoutexercisejoin.WorkoutExercise, error)
 	GetAllWorkouts(ctx context.Context, userID int) ([]model.Workout, error)
+	UpdateWorkoutPhoto(ctx context.Context, workoutID int, path string) error
 }
 
 var _ WorkoutRepositoryInterface = (*WorkoutRepository)(nil)
