@@ -142,7 +142,7 @@ func (h *WorkoutHandler) UpdatePhoto(c *gin.Context) {
 		return
 	}
 
-	filename := fmt.Sprintf("uploads/workouts/%d/%s", workoutID, file.Filename)
+	filename := fmt.Sprintf("uploads/workouts/%d/photo.jpg", workoutID)
 
 	if err := c.SaveUploadedFile(file, filename); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
@@ -155,4 +155,28 @@ func (h *WorkoutHandler) UpdatePhoto(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "photo uploaded successfully"})
+}
+
+func (h *WorkoutHandler) GetPhoto(c *gin.Context) {
+	userID := c.GetInt("userID")
+	workoutIDStr := c.Param("id")
+
+	workoutID, err := strconv.Atoi(workoutIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workout ID"})
+		return
+	}
+
+	workout, err := h.Service.GetWorkoutByID(c.Request.Context(), userID, workoutID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "workout not found or access denied"})
+		return
+	}
+
+	if workout.Workout.PhotoPath == nil || *workout.Workout.PhotoPath == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no photo found for this workout"})
+		return
+	}
+
+	c.File(*workout.Workout.PhotoPath)
 }

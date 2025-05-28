@@ -87,7 +87,7 @@ func (r *WorkoutRepository) DeleteWorkout(ctx context.Context, workoutID int, us
 func (r *WorkoutRepository) GetWorkoutByID(ctx context.Context, workoutID int, userID int) (*model.Workout, error) {
 	var w model.Workout
 	err := r.Pool.QueryRow(ctx, `
-		SELECT id, user_id, name, title, category, createdat, updatedat
+		SELECT id, user_id, name, title, category, photo_path, createdat, updatedat
 		FROM workouts
 		WHERE id = $1 AND user_id = $2 AND deletedat IS NULL
 	`, workoutID, userID).Scan(
@@ -96,6 +96,7 @@ func (r *WorkoutRepository) GetWorkoutByID(ctx context.Context, workoutID int, u
 		&w.Name,
 		&w.Title,
 		&w.Category,
+		&w.PhotoPath, // Add this line
 		&w.CreatedAt,
 		&w.UpdatedAt,
 	)
@@ -167,7 +168,7 @@ func (r *WorkoutRepository) GetWorkoutExercises(ctx context.Context, workoutID i
 
 func (r *WorkoutRepository) GetAllWorkouts(ctx context.Context, userID int) ([]model.Workout, error) {
 	rows, err := r.Pool.Query(ctx, `
-		SELECT id, user_id, name, title, category, createdat, updatedat
+		SELECT id, user_id, name, title, category, photo_path, createdat, updatedat
 		FROM workouts
 		WHERE user_id = $1 AND deletedat IS NULL
 		ORDER BY createdat DESC
@@ -181,7 +182,7 @@ func (r *WorkoutRepository) GetAllWorkouts(ctx context.Context, userID int) ([]m
 	var workouts []model.Workout
 	for rows.Next() {
 		var w model.Workout
-		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.Title, &w.Category, &w.CreatedAt, &w.UpdatedAt); err != nil {
+		if err := rows.Scan(&w.ID, &w.UserID, &w.Name, &w.Title, &w.Category, &w.PhotoPath, &w.CreatedAt, &w.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("get workouts: %w", err)
 		}
 		workouts = append(workouts, w)

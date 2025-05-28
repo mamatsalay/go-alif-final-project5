@@ -152,7 +152,7 @@ linters-settings:
       - preferWriteByte
       - ptrToRefParam
       - rangeExprCopy
-      - rangeValCopy
+#      - rangeValCopy
       - redundantSprint
       # - regexpMust
       - returnAfterHttpError

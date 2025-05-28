@@ -11,6 +11,7 @@ type Workout struct {
 	Category  string     `json:"category"`
 	Title     string     `json:"title"`
 	Name      string     `json:"name"`
+	PhotoPath *string    `json:"photo_path"`
 	ID        int        `json:"id"`
 	UserID    int        `json:"user_id"`
 }
