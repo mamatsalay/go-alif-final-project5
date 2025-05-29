@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-
 	model "workout-tracker/internal/model/workout"
 	joinModel "workout-tracker/internal/model/workoutexercisejoin"
 	"workout-tracker/internal/service/workout"
@@ -126,5 +125,27 @@ func TestGetAllWorkoutsWithExercises_FetchFails(t *testing.T) {
 	}
 	service := newTestService(t, repo)
 	_, err := service.GetAllWorkoutsWithExercises(t.Context(), 1)
+	assert.Error(t, err)
+}
+
+func TestUpdateWorkoutPhoto_Success(t *testing.T) {
+	repo := &stubRepo{
+		UpdateWorkoutPhotoFn: func(ctx context.Context, workoutID int, path string) error {
+			return nil
+		},
+	}
+	service := newTestService(t, repo)
+	err := service.UpdateWorkoutPhoto(t.Context(), 1, "Test")
+	assert.NoError(t, err)
+}
+
+func TestUpdateWorkoutPhoto_Error(t *testing.T) {
+	repo := &stubRepo{
+		UpdateWorkoutPhotoFn: func(ctx context.Context, workoutID int, path string) error {
+			return errors.New("update error")
+		},
+	}
+	service := newTestService(t, repo)
+	err := service.UpdateWorkoutPhoto(t.Context(), 1, "Test")
 	assert.Error(t, err)
 }
