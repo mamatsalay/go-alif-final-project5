@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	dto "workout-tracker/internal/dto/workout"
 
@@ -31,6 +33,8 @@ func setupRouter(fs *FakeService) *gin.Engine {
 	r.DELETE("/workouts/:id", h.Delete)
 	r.GET("/workouts", h.GetAll)
 	r.GET("/workouts/:id", h.Get)
+	r.POST("/workouts/:id/photo", h.UpdatePhoto)
+	r.GET("/workouts/:id/photo", h.GetPhoto)
 	return r
 }
 
@@ -124,6 +128,106 @@ func TestGet_NotFound(t *testing.T) {
 	r := setupRouter(fs)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/workouts/5", http.NoBody)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUpdatePhoto_InvalidID(t *testing.T) {
+	fs := &FakeService{}
+	r := setupRouter(fs)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/workouts/abc/photo", http.NoBody)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdatePhoto_NoFile(t *testing.T) {
+	fs := &FakeService{}
+	r := setupRouter(fs)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/workouts/5/photo", http.NoBody)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdatePhoto_SaveError(t *testing.T) {
+	fs := &FakeService{UpdatePhotoErr: nil}
+	r := setupRouter(fs)
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fw, _ := writer.CreateFormFile("photo", "test.txt")
+	fw.Write([]byte("data"))
+	writer.Close()
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/workouts/5/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUpdatePhoto_ServiceError(t *testing.T) {
+	os.MkdirAll("uploads/workouts/5", 0755)
+	defer os.RemoveAll("uploads")
+
+	fs := &FakeService{UpdatePhotoErr: errors.New("svc fail")}
+	r := setupRouter(fs)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fw, _ := writer.CreateFormFile("photo", "test.txt")
+	fw.Write([]byte("data"))
+	writer.Close()
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/workouts/5/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUpdatePhoto_Success(t *testing.T) {
+	os.MkdirAll("uploads/workouts/5", 0755)
+	defer os.RemoveAll("uploads")
+
+	fs := &FakeService{UpdatePhotoErr: nil}
+	r := setupRouter(fs)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fw, _ := writer.CreateFormFile("photo", "test.txt")
+	fw.Write([]byte("ok"))
+	writer.Close()
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/workouts/5/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "photo uploaded successfully", resp["message"])
+}
+
+func TestGetPhoto_InvalidID(t *testing.T) {
+	fs := &FakeService{}
+	r := setupRouter(fs)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/workouts/abc/photo", nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetPhoto_NotFoundInService(t *testing.T) {
+	fs := &FakeService{GetErr: errors.New("not found")}
+	r := setupRouter(fs)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/workouts/5/photo", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
